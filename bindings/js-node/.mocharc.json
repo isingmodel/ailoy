@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/mocharc.json",
+  "spec": "tests/**/*.spec.{js,cjs,mjs,ts}",
+  "timeout": 60000,
+  "require": "tsx"
+}

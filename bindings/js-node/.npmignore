@@ -1,0 +1,4 @@
+build
+csrc
+node_modules
+*.backup
