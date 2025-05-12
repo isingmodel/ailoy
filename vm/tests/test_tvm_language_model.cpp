@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "component.hpp"
 #include "language.hpp"
+#include "module.hpp"
 
 static const std::string QWEN_MESSAGES = R"([
   {"role": "system", "content": "You are Elon Musk. Please answer like Elon Musk."},

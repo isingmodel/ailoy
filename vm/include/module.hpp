@@ -259,15 +259,8 @@ public:
     objs_.insert_or_assign(name, obj);
   }
 
-protected:
-  void insert_operator(const std::string &key,
-                       std::shared_ptr<method_operator_t> op) {
-    ops_.insert_or_assign(key, op);
-  }
-
 private:
   std::unordered_map<std::string, std::shared_ptr<method_operator_t>> ops_;
-
   std::unordered_map<std::string, std::shared_ptr<object_t>> objs_;
 };
 

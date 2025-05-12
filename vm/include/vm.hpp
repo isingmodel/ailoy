@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "component.hpp"
+#include "module.hpp"
 #include "thread.hpp"
 
 namespace ailoy {
