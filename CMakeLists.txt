@@ -107,4 +107,3 @@ add_subdirectory(vm)
 
 add_subdirectory(bindings/python)
 add_subdirectory(bindings/js-node)
-add_subdirectory(bindings/js-browser)
