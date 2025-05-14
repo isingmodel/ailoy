@@ -1,6 +1,6 @@
 import { BrowserWindow, ipcMain, dialog } from "electron";
 import * as fs from "fs/promises";
-import * as ailoy from "ailoy-js-node";
+import * as ailoy from "ailoy-node";
 
 let runtime: ailoy.Runtime | undefined = undefined;
 let agent: ailoy.Agent | undefined = undefined;
