@@ -56,10 +56,15 @@ For more details, refer to `bindings/python/README.md`.
 ### Prerequisites
 
 - C/C++ compiler
-- CMake
+  (recommended versions are below)
+  - GCC >= 13
+  - LLVM Clang >= 17
+  - Apple Clang >= 15
+  - MSVC >= 19.29
+- CMake >= 3.24.0
 - Git
 - OpenSSL (libssl-dev)
-- Rust & Cargo (optional, required for mlc-llm)
+- Rust & Cargo >= 1.82.0 (optional, required for mlc-llm)
 - OpenMP (libomp-dev) (optional, used by Faiss)
 - BLAS (libblas-dev) (optional, used by Faiss)
 - LAPACK (liblapack-dev) (optional, used by Faiss)
