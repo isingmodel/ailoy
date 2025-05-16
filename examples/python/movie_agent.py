@@ -1,22 +1,20 @@
 import asyncio
 import os
 
-from ailoy import AsyncRuntime, Agent
+from ailoy import Runtime, Agent
 from ailoy.agent import BearerAuthenticator
 
-from common import print_reflective_response
+from common import print_agent_response
 
 
 async def main():
-    rt = AsyncRuntime()
+    rt = Runtime()
 
     tmdb_api_key = os.environ.get("TMDB_API_KEY", None)
     if tmdb_api_key is None:
         tmdb_api_key = input("Enter TMDB API Key: ")
 
     agent = Agent(rt, model_name="qwen3-8b")
-
-    await agent.initialize()
 
     agent.add_tools_from_preset("tmdb", authenticator=BearerAuthenticator(tmdb_api_key))
 
@@ -31,8 +29,8 @@ async def main():
         if query == "":
             continue
 
-        async for resp in agent.run(query):
-            print_reflective_response(resp)
+        for resp in agent.run(query):
+            print_agent_response(resp)
 
 
 if __name__ == "__main__":
