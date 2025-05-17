@@ -67,7 +67,17 @@ class BdistWheelCommand(bdist_wheel):
             if fname.endswith(".whl"):
                 wheel_path = os.path.join(dist_dir, fname)
                 print(f"Running delocate on {wheel_path}")
-                subprocess.check_call(["delocate-wheel", "-w", dist_dir, "-v", wheel_path])
+                subprocess.check_call(
+                    [
+                        "delocate-wheel",
+                        "--require-archs",
+                        "arm64",
+                        "-w",
+                        dist_dir,
+                        "-v",
+                        wheel_path,
+                    ]
+                )
 
 
 setup(
