@@ -112,20 +112,6 @@ TEST(VectorStoreTest, FAISSComponent_CreateAddRetrieve) {
         .metadata = nlohmann::json{{"value", i}},
     };
     insert_inputs.push_back(insert_input);
-
-    // auto in1 = ailoy::create<ailoy::map_t>();
-    // in1->insert_or_assign("embedding", vec);
-    // in1->insert_or_assign("document",
-    //                       ailoy::create<ailoy::string_t>(add_input.document));
-    // in1->insert_or_assign("metadata",
-    //                       ailoy::from_nlohmann_json(add_input.metadata));
-    // add_vector_op->initialize(in1);
-    // auto vec_id_opt = add_vector_op->step();
-    // ASSERT_EQ(vec_id_opt.index(), 0);
-    // auto vec_id = *std::get<0>(vec_id_opt)
-    //                    .val->as<ailoy::map_t>()
-    //                    ->at<ailoy::string_t>("id");
-    // vec_ids.push_back(vec_id);
   }
 
   // test insert
