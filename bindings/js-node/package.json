@@ -10,6 +10,7 @@
     "types": "dist/index.d.ts",
     "files": [
         "dist",
+        "prebuilds",
         "README.md"
     ],
     "scripts": {
@@ -20,7 +21,7 @@
         "test": "ts-mocha",
         "prepack": "clean-package",
         "postpack": "clean-package restore",
-        "packaging": "node build-prebuild.js",
+        "packaging": "node build-prebuild.js && npm run build:ts",
         "install": "prebuild-install || cmake-js rebuild"
     },
     "devDependencies": {

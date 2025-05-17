@@ -23,17 +23,10 @@ if (DEFINED NODE)
     execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
   endif()
 
-  add_custom_command(TARGET ailoy_addon POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      $<TARGET_FILE:tvm_runtime>
-      $<TARGET_FILE_DIR:ailoy_addon>
-    COMMENT "Copying mlc-llm runtime dependencies to addon output"
-  )
-
   list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.node)
-  list(APPEND AILOY_JS_NODE_OUTPUTS $<TARGET_FILE:tvm_runtime>)
   if(WIN32)
-    list(APPEND AILOY_JS_NODE_OUTPUTS $<TARGET_FILE:mlc_llm>)
+    list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.dll)
+    list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.dll)
     if(CMAKE_GENERATOR MATCHES "Visual Studio")
       list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:ailoy_addon.pdb>)
       list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:mlc_llm.pdb>)

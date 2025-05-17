@@ -17,6 +17,7 @@ const buildArgs = [
   "--napi",
   "--backend",
   "cmake-js",
+  "--strip",
   "--",
   "-d",
   "../..",
