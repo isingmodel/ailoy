@@ -17,7 +17,6 @@ if (DEFINED NODE)
   # Options to enable sanitizer (not working on examples though)
   # target_compile_options(ailoy_addon PRIVATE -fsanitize=address -fno-omit-frame-pointer)
   # target_link_options(ailoy_addon PRIVATE -fsanitize=address)
-  message(STATUS "CMAKE_JS_INC = ${CMAKE_JS_INC}")
 
   if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
     execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
