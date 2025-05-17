@@ -19,9 +19,8 @@
         "build": "npm run build:cpp && npm run build:ts",
         "clean": "rm -rf dist/",
         "test": "ts-mocha",
-        "prepack": "clean-package",
+        "prepack": "node build-prebuild.js && npm run build:ts && clean-package",
         "postpack": "clean-package restore",
-        "packaging": "node build-prebuild.js && npm run build:ts",
         "install": "prebuild-install || cmake-js rebuild"
     },
     "devDependencies": {
