@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from setuptools import Extension, setup
-from setuptools.command.bdist_wheel import bdist_wheel
+from setuptools.command.bdist_wheel import bdist_wheel, get_platform
 from setuptools.command.build_ext import build_ext
 
 
@@ -53,6 +53,11 @@ class CMakeBuildCommand(build_ext):
 
 
 class BdistWheelCommand(bdist_wheel):
+    def finalize_options(self):
+        platform_name = get_platform("_")
+        if "universal2" in platform_name:
+            self.plat_name = platform_name.replace("universal2", "arm64")
+
     def run(self):
         # First, build the wheel
         super().run()
