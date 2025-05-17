@@ -20,13 +20,8 @@ dev = [
 ]
 
 [build-system]
-requires = ["scikit-build-core", "pybind11"]
-build-backend = "scikit_build_core.build"
-
-[tool.scikit-build]
-cmake.source-dir = "../.."
-build-dir = "./build"
-wheel.packages = ["ailoy"]
+requires = ["setuptools", "pybind11", "delocate"]
+build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 addopts = "--capture=tee-sys --strict-markers"
