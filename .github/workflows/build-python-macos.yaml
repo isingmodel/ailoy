@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      
+
       - name: Install libomp
         run: brew install libomp
 
@@ -28,8 +28,8 @@ jobs:
         working-directory: ${{ github.workspace }}/bindings/python
         run: cibuildwheel
         env:
-          MACOSX_DEPLOYMENT_TARGET: "13.3"
-          CMAKE_OSX_DEPLOYMENT_TARGET: "13.3"
+          MACOSX_DEPLOYMENT_TARGET: "14.0"
+          CMAKE_OSX_DEPLOYMENT_TARGET: "14.0"
           OpenMP_ROOT: /opt/homebrew/opt/libomp
           CIBW_BUILD: cp313-*
 
