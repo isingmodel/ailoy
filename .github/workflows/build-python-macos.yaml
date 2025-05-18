@@ -30,6 +30,7 @@ jobs:
         run: |
           cmake --preset apple-clang-release
           cmake --build ${{ github.workspace }}/build/apple-clang-release --parallel $(sysctl -n hw.logicalcpu)
+          cmake --install ${{ github.workspace }}/build/apple-clang-release
         env:
           OpenMP_ROOT: /opt/homebrew/opt/libomp
 
