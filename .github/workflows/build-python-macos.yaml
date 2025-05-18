@@ -7,6 +7,10 @@ jobs:
   build-and-upload:
     runs-on: macos-14
 
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      CMAKE_OSX_DEPLOYMENT_TARGET: "14.0"
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -21,14 +25,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install cibuildwheel
+      
+      - name: Build ailoy core
+        run: |
+          cmake --preset apple-clang-release
+          cmake --build ${{ github.workspace }}/build/apple-clang-release --parallel $(sysctl -n hw.logicalcpu)
+        env:
+          OpenMP_ROOT: /opt/homebrew/opt/libomp
 
       - name: Build wheel
         working-directory: ${{ github.workspace }}/bindings/python
         run: cibuildwheel
-        env:
-          MACOSX_DEPLOYMENT_TARGET: "14.0"
-          CMAKE_OSX_DEPLOYMENT_TARGET: "14.0"
-          OpenMP_ROOT: /opt/homebrew/opt/libomp
 
       - name: Upload to S3
         env:
@@ -36,4 +43,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp ${{ github.workspace }}/bindings/python/wheelhouse/*.whl s3://${{ env.AWS_S3_BUCKET }}/wheels/
+          aws s3 cp ${{ github.workspace }}/bindings/python/wheelhouse/ s3://${{ env.AWS_S3_BUCKET }}/wheels/

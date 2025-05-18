@@ -1,3 +1,4 @@
+import json
 import multiprocessing
 import os
 import subprocess
@@ -25,8 +26,23 @@ class CMakeBuildCommand(build_ext):
         build_temp = Path(self.build_temp)
         build_temp.mkdir(parents=True, exist_ok=True)
 
+        # Collect possible install dirs from CMakePresets.json
+        root_path = Path(__file__).parent.parent.parent
+        cmake_preset_json_path = root_path / "CMakePresets.json"
+        cmake_prefix_paths = []
+        with open(cmake_preset_json_path) as f:
+            cmake_presets = json.load(f)
+            for preset in cmake_presets["configurePresets"]:
+                install_dir = (
+                    preset["installDir"]
+                    .replace("${sourceDir}", str(root_path))
+                    .replace("${presetName}", preset["name"])
+                )
+                cmake_prefix_paths.append(f"{install_dir}/lib/cmake/ailoy")
+        cmake_prefix_path = ";".join(cmake_prefix_paths)
+
         cmake_args = [
-            "-DPYBUILD=ON",
+            f"-DCMAKE_PREFIX_PATH={cmake_prefix_path}",
             f"-DSETUPTOOLS_EXTDIR={extdir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
         ]
@@ -55,7 +71,7 @@ setup(
     version="0.0.1",
     packages=["ailoy"],
     package_dir={"": "."},
-    ext_modules=[CMakeExtension("ailoy.ailoy_py", "../../")],
+    ext_modules=[CMakeExtension("ailoy.ailoy_py")],
     cmdclass={
         "build_ext": CMakeBuildCommand,
     },
