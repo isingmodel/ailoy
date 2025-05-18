@@ -28,6 +28,18 @@ jobs:
           $PYTHON_BIN/pip install -U pip
           $PYTHON_BIN/pip install build scikit-build-core
 
+      - name: Install OpenSSL 3.0.16
+        run: |
+          curl -O https://www.openssl.org/source/openssl-3.0.16.tar.gz
+          tar -xzf openssl-3.0.16.tar.gz
+          cd openssl-3.0.16
+          ./config --prefix=/opt/openssl --openssldir=/opt/openssl no-shared
+          make -j$(nproc)
+          make install_sw
+          echo "OPENSSL_ROOT_DIR=/opt/openssl" >> $GITHUB_ENV
+          echo "OPENSSL_LIBRARIES=/opt/openssl/lib" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/opt/openssl/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
       - name: Install Vulkan SDK
         run: |
           curl -Lo vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz?Human=true
