@@ -1,0 +1,52 @@
+name: Build Linux Wheels
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64
+
+    strategy:
+      matrix:
+        python: ["cp310-cp310", "cp311-cp311", "cp312-cp312", "cp313-cp313"]
+
+    env:
+      PYTHON_BIN: /opt/python/${{ matrix.python }}/bin
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Python build dependencies
+        run: |
+          $PYTHON_BIN/pip install -U pip
+          $PYTHON_BIN/pip install build scikit-build-core
+
+      - name: Install Vulkan SDK
+        run: |
+          curl -Lo vulkan-sdk.tar.gz https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.gz?Human=true
+          mkdir -p /opt/vulkan-sdk
+          tar -xzf vulkan-sdk.tar.gz --strip-components=1 -C /opt/vulkan-sdk
+
+          echo "VULKAN_SDK=/opt/vulkan-sdk/x86_64" >> $GITHUB_ENV
+          echo "PATH=/opt/vulkan-sdk/x86_64/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/opt/vulkan-sdk/x86_64/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "VK_ICD_FILENAMES=/opt/vulkan-sdk/x86_64/etc/vulkan/icd.d" >> $GITHUB_ENV
+          echo "VK_LAYER_PATH=/opt/vulkan-sdk/x86_64/etc/vulkan/explicit_layer.d" >> $GITHUB_ENV
+
+      - name: Build wheel
+        working-directory: bindings/python
+        run: |
+          $PYTHON_BIN/python -m build --wheel --outdir /tmp/dist
+
+      - name: Auditwheel repair
+        run: |
+          mkdir -p /tmp/wheelhouse
+          auditwheel repair /tmp/dist/*.whl --plat manylinux2014_x86_64 -w /tmp/wheelhouse
+          auditwheel show /tmp/wheelhouse/*.whl

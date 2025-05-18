@@ -50,6 +50,8 @@ add_compile_definitions(TE_NAT_LOG)
 file(DOWNLOAD https://raw.githubusercontent.com/codeplea/tinyexpr/9907207e5def0fabdb60c443517b0d9e9d521393/tinyexpr.h ${TINYEXPR_ROOT}/include/tinyexpr.h)
 file(DOWNLOAD https://raw.githubusercontent.com/codeplea/tinyexpr/9907207e5def0fabdb60c443517b0d9e9d521393/tinyexpr.c ${TINYEXPR_ROOT}/src/tinyexpr.c)
 add_library(tinyexpr STATIC ${TINYEXPR_ROOT}/src/tinyexpr.c)
+# Note that tinyexpr is compiled with the C compiler (not CXX).
+# While this is generally not an issue, it can cause problems during LTO on some compilers.
 set_target_properties(tinyexpr PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
 target_include_directories(tinyexpr PUBLIC ${TINYEXPR_ROOT}/include)
 target_link_libraries(ailoy_vm_obj PUBLIC tinyexpr)
