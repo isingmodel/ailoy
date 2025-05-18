@@ -29,6 +29,7 @@ jobs:
           pip install build delocate scikit-build-core
 
       - name: Build wheel
+        working-directory: ${{ github.workspace }}/bindings/python
         run: |
           python -m build -w --outdir dist/
         env:
