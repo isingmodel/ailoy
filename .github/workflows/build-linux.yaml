@@ -30,9 +30,9 @@ jobs:
 
       - name: Install Vulkan SDK
         run: |
-          curl -Lo vulkan-sdk.tar.gz https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.gz?Human=true
+          curl -Lo vulkan-sdk.tar.xz https://sdk.lunarg.com/sdk/download/latest/linux/vulkan-sdk.tar.xz?Human=true
           mkdir -p /opt/vulkan-sdk
-          tar -xzf vulkan-sdk.tar.gz --strip-components=1 -C /opt/vulkan-sdk
+          tar -xJf vulkan-sdk.tar.xz --strip-components=1 -C /opt/vulkan-sdk
 
           echo "VULKAN_SDK=/opt/vulkan-sdk/x86_64" >> $GITHUB_ENV
           echo "PATH=/opt/vulkan-sdk/x86_64/bin:$PATH" >> $GITHUB_ENV
