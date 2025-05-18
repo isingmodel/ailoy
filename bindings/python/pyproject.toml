@@ -20,8 +20,15 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools", "pybind11", "delocate"]
+requires = ["setuptools", "pybind11"]
 build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+skip = "pp*"
+build-verbosity = 1
+
+[tool.cibuildwheel.macos]
+archs = ["arm64"]
 
 [tool.pytest.ini_options]
 addopts = "--capture=tee-sys --strict-markers"

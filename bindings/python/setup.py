@@ -1,12 +1,10 @@
 import multiprocessing
 import os
-import platform
 import subprocess
 import sys
 from pathlib import Path
 
 from setuptools import Extension, setup
-from setuptools.command.bdist_wheel import bdist_wheel, get_platform
 from setuptools.command.build_ext import build_ext
 
 
@@ -52,39 +50,6 @@ class CMakeBuildCommand(build_ext):
         )
 
 
-class BdistWheelCommand(bdist_wheel):
-    def finalize_options(self):
-        platform_name = get_platform("_")
-        if "universal2" in platform_name:
-            self.plat_name = platform_name.replace("universal2", "arm64")
-
-    def run(self):
-        # First, build the wheel
-        super().run()
-
-        if platform.system() == "Darwin":
-            self.macos_delocate()
-
-    def macos_delocate(self):
-        # Then, post-process the wheel with delocate
-        dist_dir = os.path.abspath(self.dist_dir)
-        for fname in os.listdir(dist_dir):
-            if fname.endswith(".whl"):
-                wheel_path = os.path.join(dist_dir, fname)
-                print(f"Running delocate on {wheel_path}")
-                subprocess.check_call(
-                    [
-                        "delocate-wheel",
-                        "--require-archs",
-                        "arm64",
-                        "-w",
-                        dist_dir,
-                        "-v",
-                        wheel_path,
-                    ]
-                )
-
-
 setup(
     name="ailoy",
     version="0.0.1",
@@ -93,7 +58,6 @@ setup(
     ext_modules=[CMakeExtension("ailoy.ailoy_py", "../../")],
     cmdclass={
         "build_ext": CMakeBuildCommand,
-        "bdist_wheel": BdistWheelCommand,
     },
     zip_safe=False,
 )
