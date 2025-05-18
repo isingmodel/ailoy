@@ -50,6 +50,7 @@ add_compile_definitions(TE_NAT_LOG)
 file(DOWNLOAD https://raw.githubusercontent.com/codeplea/tinyexpr/9907207e5def0fabdb60c443517b0d9e9d521393/tinyexpr.h ${TINYEXPR_ROOT}/include/tinyexpr.h)
 file(DOWNLOAD https://raw.githubusercontent.com/codeplea/tinyexpr/9907207e5def0fabdb60c443517b0d9e9d521393/tinyexpr.c ${TINYEXPR_ROOT}/src/tinyexpr.c)
 add_library(tinyexpr STATIC ${TINYEXPR_ROOT}/src/tinyexpr.c)
+set_target_properties(tinyexpr PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
 target_include_directories(tinyexpr PUBLIC ${TINYEXPR_ROOT}/include)
 target_link_libraries(ailoy_vm_obj PUBLIC tinyexpr)
 
@@ -189,7 +190,7 @@ if(AILOY_WITH_TEST)
 
     add_executable(test_calculator ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_calculator.cpp)
     add_test(NAME TestCalculator COMMAND test_calculator)
-    target_link_libraries(test_calculator PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
+    target_link_libraries(test_calculator PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj tinyexpr GTest::gtest)
     target_link_options(test_calculator PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_model_cache ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_model_cache.cpp)
