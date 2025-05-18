@@ -13,8 +13,6 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
 
       - name: Install libomp
         run: brew install libomp
@@ -31,7 +29,6 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "14.0"
           CMAKE_OSX_DEPLOYMENT_TARGET: "14.0"
           OpenMP_ROOT: /opt/homebrew/opt/libomp
-          CIBW_BUILD: cp313-*
 
       - name: Upload to S3
         env:
