@@ -28,15 +28,6 @@ jobs:
           $PYTHON_BIN/pip install -U pip
           $PYTHON_BIN/pip install build scikit-build-core
 
-      - name: Install Rust (cargo)
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install BLAS/LAPACK
-        run: |
-          yum install -y blas-devel lapack-devel
-
       - name: Install OpenSSL 3.0.16
         run: |
           yum install -y perl-IPC-Cmd
@@ -46,6 +37,15 @@ jobs:
           ./config --prefix=/opt/openssl --openssldir=/opt/openssl no-shared
           make -j$(nproc)
           make install_sw
+
+      - name: Install Rust (cargo)
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install BLAS/LAPACK
+        run: |
+          yum install -y blas-devel lapack-devel
 
       - name: Install Vulkan SDK
         run: |
@@ -62,7 +62,7 @@ jobs:
           VULKAN_SDK: /opt/vulkan-sdk/x86_64
           LD_LIBRARY_PATH: /opt/openssl/lib:/opt/vulkan-sdk/x86_64/lib
 
-      - name: Auditwheel repair
+      - name: Repair wheel
         run: |
           mkdir -p /tmp/wheelhouse
           auditwheel repair /tmp/dist/*.whl --plat manylinux2014_x86_64 -w /tmp/wheelhouse

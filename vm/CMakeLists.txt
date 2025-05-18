@@ -37,10 +37,27 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(indicators)
 target_link_libraries(ailoy_vm_obj PRIVATE indicators::indicators)
 
-# minja
 set(MINJA_ROOT ${CMAKE_BINARY_DIR}/_deps/minja)
-file(DOWNLOAD https://raw.githubusercontent.com/google/minja/f06140fa52fd140fe38e531ec373d8dc9c86aa06/include/minja/minja.hpp ${MINJA_ROOT}/include/minja/minja.hpp)
-file(DOWNLOAD https://raw.githubusercontent.com/google/minja/f06140fa52fd140fe38e531ec373d8dc9c86aa06/include/minja/chat-template.hpp ${MINJA_ROOT}/include/minja/chat-template.hpp)
+
+file(DOWNLOAD
+  https://raw.githubusercontent.com/google/minja/f06140fa52fd140fe38e531ec373d8dc9c86aa06/include/minja/chat-template.hpp
+  ${MINJA_ROOT}/include/minja/chat-template.hpp
+  STATUS DOWNLOAD_STATUS
+  SHOW_PROGRESS
+)
+
+list(GET DOWNLOAD_STATUS 0 status_code)
+if(NOT status_code EQUAL 0)
+  message(FATAL_ERROR "❌ Failed to download chat-template.hpp")
+endif()
+
+file(READ ${MINJA_ROOT}/include/minja/chat-template.hpp MINJA_CHAT_TEMPLATE_CONTENT)
+
+string(REPLACE "\n" ";" MINJA_LINES "${MINJA_CHAT_TEMPLATE_CONTENT}")
+list(SUBLIST MINJA_LINES 0 10 MINJA_LINES_HEAD)
+foreach(line IN LISTS MINJA_LINES_HEAD)
+  message(STATUS "chat-template.hpp: ${line}")
+endforeach()
 
 target_include_directories(ailoy_vm_obj PRIVATE ${MINJA_ROOT}/include)
 
