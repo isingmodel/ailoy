@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout source
@@ -36,6 +36,7 @@ jobs:
           OpenMP_ROOT: /opt/homebrew/opt/libomp
 
       - name: Delocate wheel
+        working-directory: ${{ github.workspace }}/bindings/python
         run: |
           mkdir -p wheelhouse
           delocate-wheel dist/*.whl -w wheelhouse
