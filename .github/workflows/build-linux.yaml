@@ -52,7 +52,6 @@ jobs:
           OPENSSL_ROOT_DIR: /opt/openssl
           VULKAN_SDK: /opt/vulkan-sdk/x86_64
           LD_LIBRARY_PATH: /opt/openssl/lib:/opt/vulkan-sdk/x86_64/lib
-          PATH: /opt/vulkan-sdk/x86_64/bin:$PATH
 
       - name: Auditwheel repair
         run: |
