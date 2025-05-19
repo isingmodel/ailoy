@@ -70,6 +70,23 @@ add_subdirectory(vm)
 
 # add_subdirectory(bindings/js-node)
 
+add_library(ailoy SHARED)
+target_link_libraries(ailoy PRIVATE
+    ailoy_core_obj
+    ailoy_broker_obj
+    ailoy_broker_client_obj
+    ailoy_vm_obj
+)
+set_target_properties(ailoy PROPERTIES
+    INSTALL_RPATH "@loader_path"
+)
+
+install(TARGETS ailoy
+    EXPORT ailoyTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 install(EXPORT ailoyTargets
     FILE ailoyTargets.cmake
     NAMESPACE ailoy::
@@ -81,7 +98,6 @@ configure_package_config_file(
     ${CMAKE_CURRENT_BINARY_DIR}/ailoyConfig.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ailoy
 )
-
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/ailoyConfig.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ailoy

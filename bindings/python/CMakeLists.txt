@@ -18,12 +18,7 @@ find_package(ailoy REQUIRED)
 
 file(GLOB_RECURSE AILOY_PY_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/csrc/*.cpp)
 pybind11_add_module(ailoy_py ${AILOY_PY_SRCS})
-target_link_libraries(ailoy_py PRIVATE
-    ailoy::ailoy_core
-    ailoy::ailoy_broker_client
-    ailoy::ailoy_broker
-    ailoy::ailoy_vm
-)
+target_link_libraries(ailoy_py PRIVATE ailoy::ailoy)
 set_target_properties(ailoy_py PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${SETUPTOOLS_EXTDIR}"
 )

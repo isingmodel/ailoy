@@ -10,7 +10,7 @@ target_include_directories(ailoy_vm_obj PUBLIC
 )
 
 add_library(ailoy_vm_deps INTERFACE)
-target_link_libraries(ailoy_vm_deps INTERFACE ailoy_broker_client ailoy_core)
+target_link_libraries(ailoy_vm_deps INTERFACE ailoy_broker_client_obj ailoy_core_obj)
 
 # openssl
 set(OPENSSL_USE_STATIC_LIBS TRUE)
@@ -144,85 +144,72 @@ endif()
 
 target_link_libraries(ailoy_vm_obj PUBLIC ailoy_vm_deps)
 
-add_library(ailoy_vm SHARED)
-target_link_libraries(ailoy_vm PRIVATE ailoy_vm_obj)
-set_target_properties(ailoy_vm PROPERTIES
-    INSTALL_RPATH "@loader_path"
-)
-
 if(AILOY_WITH_TEST)
     add_executable(test_debug_module ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_debug_module.cpp)
     target_include_directories(test_debug_module PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME TestDebugModule COMMAND test_debug_module)
-    target_link_libraries(test_debug_module PRIVATE ailoy_vm_obj ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_debug_module PRIVATE ailoy_vm_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_debug_module PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_vm ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vm.cpp)
     target_include_directories(test_vm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME TestVM COMMAND test_vm)
-    target_link_libraries(test_vm PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_vm PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_vm PRIVATE -fsanitize=undefined -fsanitize=address)
     
     add_executable(test_tvm_language_model ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tvm_language_model.cpp)
     add_test(NAME TestTVMLanguageModel COMMAND test_tvm_language_model)
     target_include_directories(test_tvm_language_model PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_tvm_language_model PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_tvm_language_model PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_tvm_language_model PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_tvm_embedding_model ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tvm_embedding_model.cpp)
     add_test(NAME TestTVMEmbeddingModel COMMAND test_tvm_embedding_model)
     target_include_directories(test_tvm_embedding_model PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_tvm_embedding_model PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_tvm_embedding_model PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_tvm_embedding_model PRIVATE -fsanitize=undefined)
 
     add_executable(test_faiss_vector_store ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_faiss_vector_store.cpp)
     add_test(NAME TestFaissVectorStore COMMAND test_faiss_vector_store)
     target_include_directories(test_faiss_vector_store PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_faiss_vector_store PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_faiss_vector_store PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_faiss_vector_store PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_chromadb_vector_store ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_chromadb_vector_store.cpp)
     add_test(NAME TestChromadbVectorStore COMMAND test_chromadb_vector_store)
     target_include_directories(test_chromadb_vector_store PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_chromadb_vector_store PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_chromadb_vector_store PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_chromadb_vector_store PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_split_text ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_split_text.cpp)
     add_test(NAME TestSplitText COMMAND test_split_text)
-    target_link_libraries(test_split_text PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_split_text PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_split_text PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_calculator ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_calculator.cpp)
     add_test(NAME TestCalculator COMMAND test_calculator)
-    target_link_libraries(test_calculator PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_calculator PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_calculator PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_model_cache ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_model_cache.cpp)
     add_test(NAME TestModelCache COMMAND test_model_cache)
     target_include_directories(test_model_cache PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_model_cache PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_model_cache PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_model_cache PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_http_request ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_http_request.cpp)
     add_test(NAME TestHttpRequest COMMAND test_http_request)
     target_include_directories(test_http_request PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_http_request PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest)
+    target_link_libraries(test_http_request PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest)
     target_link_options(test_http_request PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_openai ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_openai.cpp)
     add_test(NAME TestOpenAI COMMAND test_openai)
     target_include_directories(test_openai PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(test_openai PRIVATE ailoy_vm_obj ailoy_broker ailoy_broker_client ailoy_core GTest::gtest GTest::gmock)
+    target_link_libraries(test_openai PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj GTest::gtest GTest::gmock)
     target_link_options(test_openai PRIVATE -fsanitize=undefined -fsanitize=address)
 endif()
 
-# Install ailoy_vm
-install(TARGETS ailoy_vm
-    EXPORT ailoyTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp"

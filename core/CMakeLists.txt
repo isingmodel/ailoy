@@ -26,44 +26,37 @@ if(NOT DEFINED EMSCRIPTEN)
 endif()
 
 file(GLOB_RECURSE AILOY_CORE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-add_library(ailoy_core STATIC ${AILOY_CORE_SRCS})
-target_include_directories(ailoy_core PUBLIC 
+add_library(ailoy_core_obj OBJECT ${AILOY_CORE_SRCS})
+target_include_directories(ailoy_core_obj PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 if(NOT DEFINED EMSCRIPTEN)
-    target_link_libraries(ailoy_core PRIVATE $<BUILD_INTERFACE:cpptrace::cpptrace>)
+    target_link_libraries(ailoy_core_obj PRIVATE $<BUILD_INTERFACE:cpptrace::cpptrace>)
 endif()
-target_link_libraries(ailoy_core PUBLIC nlohmann_json::nlohmann_json)
-target_link_libraries(ailoy_core PUBLIC dlpack::dlpack)
-target_link_libraries(ailoy_core PRIVATE $<BUILD_INTERFACE:stduuid>)
-target_link_libraries(ailoy_core PRIVATE $<BUILD_INTERFACE:spdlog>)
-target_link_libraries(ailoy_core PRIVATE $<BUILD_INTERFACE:magic_enum>)
+target_link_libraries(ailoy_core_obj PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(ailoy_core_obj PUBLIC dlpack::dlpack)
+target_link_libraries(ailoy_core_obj PRIVATE $<BUILD_INTERFACE:stduuid>)
+target_link_libraries(ailoy_core_obj PRIVATE $<BUILD_INTERFACE:spdlog>)
+target_link_libraries(ailoy_core_obj PRIVATE $<BUILD_INTERFACE:magic_enum>)
 
 if(AILOY_WITH_TEST)
     add_executable(test_packet ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_packet.cpp)
     add_test(NAME TestPacket COMMAND test_packet)
-    target_link_libraries(test_packet PRIVATE ailoy_core GTest::gtest)
+    target_link_libraries(test_packet PRIVATE ailoy_core_obj GTest::gtest)
     target_link_options(test_packet PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_inproc_socket ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_inproc_socket.cpp)
     add_test(NAME TestInprocSocket COMMAND test_inproc_socket)
-    target_link_libraries(test_inproc_socket PRIVATE ailoy_core GTest::gtest)
+    target_link_libraries(test_inproc_socket PRIVATE ailoy_core_obj GTest::gtest)
     target_link_options(test_inproc_socket PRIVATE -fsanitize=undefined -fsanitize=address)
 
     add_executable(test_value ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_value.cpp)
-    target_link_libraries(test_value ailoy_core GTest::gtest)
+    target_link_libraries(test_value ailoy_core_obj GTest::gtest)
     add_test(NAME TestValue COMMAND test_value)
     target_link_options(test_value PRIVATE -fsanitize=undefined -fsanitize=address)
 endif()
 
-# install ailoy_core and its public dependencies
-install(TARGETS ailoy_core dlpack nlohmann_json
-    EXPORT ailoyTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp"
