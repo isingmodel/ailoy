@@ -25,24 +25,21 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install cibuildwheel
-      
+
       - name: Build ailoy core
         run: |
-          cmake --preset apple-clang-release
+          cmake --preset apple-clang-release -DAILOY_WITH_TEST=OFF
           cmake --build ${{ github.workspace }}/build/apple-clang-release --parallel $(sysctl -n hw.logicalcpu)
           cmake --install ${{ github.workspace }}/build/apple-clang-release
         env:
           OpenMP_ROOT: /opt/homebrew/opt/libomp
 
-      - name: Build wheel
+      - name: Build wheels
         working-directory: ${{ github.workspace }}/bindings/python
         run: cibuildwheel
 
-      - name: Upload to S3
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ap-northeast-2
-        run: |
-          aws s3 cp ${{ github.workspace }}/bindings/python/wheelhouse/ s3://${{ env.AWS_S3_BUCKET }}/wheels/ --recursive
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-wheels
+          path: ${{ github.workspace }}/bindings/python/wheelhouse/*.whl
