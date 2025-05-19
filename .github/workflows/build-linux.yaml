@@ -1,7 +1,6 @@
-name: Build Linux Wheels
+name: Build Linux Python
 
 on:
-  push:
   workflow_dispatch:
 
 jobs:
@@ -67,3 +66,9 @@ jobs:
           mkdir -p /tmp/wheelhouse
           auditwheel repair /tmp/dist/*.whl --plat manylinux_2_28_x86_64 -w /tmp/wheelhouse
           auditwheel show /tmp/wheelhouse/*.whl
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-wheels-${{ matrix.python }}
+          path: /tmp/wheelhouse/*.whl

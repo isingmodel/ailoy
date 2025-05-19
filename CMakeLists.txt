@@ -20,7 +20,6 @@ install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY TRUE)" ALL_COMPONENTS)
 # Some platform-specific global options
 if(APPLE)
     add_compile_definitions(APPLE)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib)
 elseif(UNIX)
     add_compile_definitions(UNIX)
 elseif(MSVC)
