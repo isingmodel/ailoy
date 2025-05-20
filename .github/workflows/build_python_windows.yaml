@@ -63,11 +63,11 @@ jobs:
           echo "PATH=C:\VulkanSDK\Bin;$env:PATH" >> $env:GITHUB_ENV
 
       - name: Build wheel
+        shell: powershell
         working-directory: ${{ github.workspace }}/bindings/python
         run: |
           pip install build scikit-build-core
           python -m build -w --outdir dist/
-          WHEEL_NAME=$(basename dist/*.whl)
           $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
           echo "WHEEL_FILENAME=$($wheel.Name)" >> $env:GITHUB_ENV
 
@@ -75,4 +75,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.WHEEL_FILENAME }}
-          path: bindings/python/dist/${{ env.WHEEL_FILENAME }}
+          path: ${{ github.workspace }}/bindings/python/dist/${{ env.WHEEL_FILENAME }}

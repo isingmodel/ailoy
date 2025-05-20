@@ -47,4 +47,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.WHEEL_FILENAME }}
-          path: bindings/python/wheelhouse/${{ env.WHEEL_FILENAME }}
+          path: ${{ github.workspace }}/bindings/python/wheelhouse/${{ env.WHEEL_FILENAME }}
