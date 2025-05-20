@@ -1,4 +1,4 @@
-name: Node Windows Build
+name: Python Windows Build
 
 on:
   push:
@@ -61,6 +61,7 @@ jobs:
       - name: Build wheel
         working-directory: ${{ github.workspace }}/bindings/python
         run: |
+          pip install build scikit-build-core
           python -m build -w --outdir dist/
           WHEEL_NAME=$(basename dist/*.whl)
           echo "WHEEL_FILENAME=$WHEEL_NAME" >> $GITHUB_ENV

@@ -1,4 +1,4 @@
-name: Build Linux Python
+name: Python Linux Build
 
 on:
   workflow_dispatch:
