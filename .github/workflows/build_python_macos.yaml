@@ -40,9 +40,11 @@ jobs:
           mkdir -p wheelhouse
           delocate-wheel dist/*.whl -w wheelhouse
           delocate-listdeps wheelhouse/*.whl
+          WHEEL_NAME=$(basename wheelhouse/*.whl)
+          echo "WHEEL_FILENAME=$WHEEL_NAME" >> $GITHUB_ENV
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-wheels-${{ matrix.python-version }}
-          path: bindings/python/wheelhouse/*.whl
+          name: ${{ env.WHEEL_FILENAME }}
+          path: bindings/python/wheelhouse/${{ env.WHEEL_FILENAME }}

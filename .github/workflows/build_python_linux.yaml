@@ -66,9 +66,11 @@ jobs:
           mkdir -p /tmp/wheelhouse
           auditwheel repair /tmp/dist/*.whl --plat manylinux_2_28_x86_64 -w /tmp/wheelhouse
           auditwheel show /tmp/wheelhouse/*.whl
+          WHEEL_NAME=$(basename dist/*.whl)
+          echo "WHEEL_FILENAME=$WHEEL_NAME" >> $GITHUB_ENV
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-wheels-${{ matrix.python }}
-          path: /tmp/wheelhouse/*.whl
+          name: ${{ env.WHEEL_FILENAME }}
+          path: bindings/python/wheelhouse/${{ env.WHEEL_FILENAME }}
