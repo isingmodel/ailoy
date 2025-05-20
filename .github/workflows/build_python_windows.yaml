@@ -68,12 +68,11 @@ jobs:
           pip install build scikit-build-core
           python -m build -w --outdir dist/
           WHEEL_NAME=$(basename dist/*.whl)
-          echo "WHEEL_FILENAME=$WHEEL_NAME" >> $GITHUB_ENV
-        env:
-          OpenMP_ROOT: /opt/homebrew/opt/libomp
+          $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
+          echo "WHEEL_FILENAME=$($wheel.Name)" >> $env:GITHUB_ENV
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.WHEEL_FILENAME }}
-          path: bindings/python/wheelhouse/${{ env.WHEEL_FILENAME }}
+          path: bindings/python/dist/${{ env.WHEEL_FILENAME }}
