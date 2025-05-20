@@ -19,6 +19,9 @@ if(DEFINED SKBUILD)
         target_compile_options(ailoy_py PUBLIC -isysroot ${MACOS_SDK_PATH})
         target_link_options(ailoy_py PUBLIC -isysroot ${MACOS_SDK_PATH})
     endif()
+    if(MSVC)
+        target_compile_definitions(ailoy_py PRIVATE NOMINMAX)
+    endif()
 
     add_custom_command(
         TARGET ailoy_py
