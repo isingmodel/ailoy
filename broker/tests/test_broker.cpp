@@ -1,5 +1,4 @@
 #include <chrono>
-#include <csignal>
 #include <thread>
 
 #include <gtest/gtest.h>
