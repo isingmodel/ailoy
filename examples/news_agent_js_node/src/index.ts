@@ -36,9 +36,7 @@ async function main() {
     authenticator,
   });
 
-  // "I'm looking for a movie similar to Avatar.";
-  // "Please give me a link can watch Avatar."
-  // "Please recommend me a branding-new movie with good reviews"
+  // "Find me some articles about 'Agentic AI'."
   console.log(
     'Simple news assistant (Please type "exit" to stop conversation)'
   );
@@ -47,7 +45,7 @@ async function main() {
     if (query === "" || query === "exit") break;
 
     process.stdout.write(`\nAssistant: `);
-    for await (const resp of agent.run(query)) {
+    for await (const resp of agent.query(query)) {
       if (resp.type === "output_text") {
         process.stdout.write(resp.content);
         if (resp.endOfTurn) {

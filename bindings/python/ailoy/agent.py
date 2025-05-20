@@ -234,7 +234,7 @@ class Tool:
     def __init__(
         self,
         desc: ToolDescription,
-        call_fn: Callable[[Runtime, Any], Any],
+        call_fn: Callable[..., Any],
     ):
         self.desc = desc
         self.call = call_fn
@@ -380,18 +380,18 @@ class Agent:
             self._messages = []
         self._component_state.valid = False
 
-    def run(
+    def query(
         self,
         message: str,
-        enable_reasoning: Optional[bool] = None,
-        ignore_reasoning_messages: Optional[bool] = None,
+        enable_reasoning: bool = False,
+        ignore_reasoning_messages: bool = False,
     ) -> Generator[AgentResponse, None, None]:
         """
         Runs the agent with a new user message and yields streamed responses.
 
         :param message: The user message to send to the model.
-        :param enable_reasoning: If True, enables reasoning capabilities (default: True).
-        :param ignore_reasoning_messages: If True, reasoning steps are not included in the response stream.
+        :param enable_reasoning: If True, enables reasoning capabilities. (default: False)
+        :param ignore_reasoning_messages: If True, reasoning steps are not included in the response stream. (default: False)
         :yield: AgentResponse output of the LLM inference or tool calls
         """
         self._messages.append(UserMessage(role="user", content=message))
@@ -401,9 +401,9 @@ class Agent:
                 "messages": [msg.model_dump() for msg in self._messages],
                 "tools": [{"type": "function", "function": t.desc.model_dump()} for t in self._tools],
             }
-            if enable_reasoning is not None:
+            if enable_reasoning:
                 infer_args["enable_reasoning"] = enable_reasoning
-            if ignore_reasoning_messages is not None:
+            if ignore_reasoning_messages:
                 infer_args["ignore_reasoning_messages"] = ignore_reasoning_messages
 
             for resp in self._runtime.call_iter_method(self._component_state.name, "infer", infer_args):
@@ -440,7 +440,7 @@ class Agent:
                         )
                         if not tool_:
                             raise RuntimeError("Tool not found")
-                        resp = tool_.call(self._runtime, tool_call.function.arguments)
+                        resp = tool_.call(**tool_call.function.arguments)
                         return ToolCallResultMessage(
                             role="tool",
                             name=tool_call.function.name,
@@ -485,14 +485,14 @@ class Agent:
             return
         self._tools.append(tool)
 
-    def add_py_function_tool(self, desc: ToolDescription, f: Callable[[Runtime, Any], Any]):
+    def add_py_function_tool(self, desc: dict, f: Callable[..., Any]):
         """
         Adds a Python function as a tool using callable.
 
         :param desc: Tool descriotion.
         :param f: Function will be called when the tool invocation occured.
         """
-        self.add_tool(Tool(desc=desc, call_fn=f))
+        self.add_tool(Tool(desc=ToolDescription.model_validate(desc), call_fn=f))
 
     def add_universal_tool(self, tool_def: UniversalToolDefinition) -> bool:
         """
@@ -505,13 +505,13 @@ class Agent:
         if tool_def.type != "universal":
             raise ValueError('Tool type is not "universal"')
 
-        def call(runtime: Runtime, inputs: dict[str, Any]) -> Any:
+        def call(**inputs: dict[str, Any]) -> Any:
             required = tool_def.description.parameters.required or []
             for param_name in required:
                 if param_name not in inputs:
                     raise ValueError(f'Parameter "{param_name}" is required but not provided')
 
-            output = runtime.call(tool_def.description.name, inputs)
+            output = self._runtime.call(tool_def.description.name, inputs)
             if tool_def.behavior.output_path is not None:
                 output = jmespath.search(tool_def.behavior.output_path, output)
 
@@ -537,7 +537,7 @@ class Agent:
 
         behavior = tool_def.behavior
 
-        def call(_: Runtime, inputs: dict[str, Any]) -> Any:
+        def call(**inputs: dict[str, Any]) -> Any:
             def render_template(template: str, context: dict[str, Any]) -> tuple[str, list[str]]:
                 import re
 
@@ -627,7 +627,7 @@ class Agent:
         """
         from mcp.client.stdio import stdio_client
 
-        def call(_: Runtime, inputs: dict[str, Any]) -> Any:
+        def call(**inputs: dict[str, Any]) -> Any:
             async def _inner():
                 async with stdio_client(params, errlog=subprocess.STDOUT) as streams:
                     async with mcp.ClientSession(*streams) as session:
