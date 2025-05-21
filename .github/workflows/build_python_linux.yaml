@@ -48,8 +48,8 @@ jobs:
           curl -LO https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.29/OpenBLAS-0.3.29.tar.gz
           tar -xzf OpenBLAS-0.3.29.tar.gz
           cd OpenBLAS-0.3.29
-          make -j$(nproc) NO_SHARED=1 USE_OPENMP=1
-          make PREFIX=/opt/openblas install
+          make -j$(nproc) NO_SHARED=1 USE_OPENMP=0
+          make PREFIX=/opt/openblas NO_SHARED=1 USE_OPENMP=0 install
 
       - name: Install Vulkan SDK
         run: |
