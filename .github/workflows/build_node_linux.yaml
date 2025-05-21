@@ -60,9 +60,7 @@ jobs:
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
           VULKAN_SDK: /opt/vulkan-sdk/x86_64
-          OpenBLAS_HOME: /opt/openblas
-          BLAS_LIBRARIES: /opt/openblas/lib/libopenblas.a
-          LAPACK_LIBRARIES: /opt/openblas/lib/libopenblas.a
+          CMAKE_PREFIX_PATH: /opt/openblas
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
