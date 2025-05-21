@@ -56,7 +56,7 @@ jobs:
           npm install
           PACKAGE_NAME=$(npm pack | tail -n 1)
           echo $PACKAGE_NAME
-          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
         working-directory: ${{ github.workspace }}/bindings/js-node
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
