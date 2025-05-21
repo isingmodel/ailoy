@@ -69,7 +69,7 @@ jobs:
           pip install build scikit-build-core delvewheel
           python -m build -w --outdir dist
           $dist_wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
-          delvewheel repair -w wheelhouse $dist_wheel --add-path "${{ github.workspace }}\bindings\_deps\mlc-llm-build\Release;${{ github.workspace }}\bindings\_deps\mlc-llm-build\tvm\Release"
+          delvewheel repair -w wheelhouse $dist_wheel --add-path "${{ github.workspace }}\bindings\python\build\_deps\mlc-llm-build\Release;${{ github.workspace }}\bindings\python\build\_deps\mlc-llm-build\tvm\Release"
           $wheel = Get-ChildItem wheelhouse\*.whl | Select-Object -First 1
           echo "WHEEL_FILENAME=$($wheel.Name)" >> $env:GITHUB_ENV
 
