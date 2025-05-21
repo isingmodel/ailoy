@@ -1,7 +1,7 @@
 name: Python Windows Build
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   build-windows:
@@ -70,7 +70,7 @@ jobs:
           python -m build -w --outdir dist
           $dist_wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
           delvewheel repair -h
-          delvewheel repair -w wheelhouse $dist_wheel
+          delvewheel repair -w wheelhouse $dist_wheel --add-path ${{ github.workspace }}/bindings/build/Release
           $wheel = Get-ChildItem wheelhouse\*.whl | Select-Object -First 1
           echo "WHEEL_FILENAME=$($wheel.Name)" >> $env:GITHUB_ENV
 
