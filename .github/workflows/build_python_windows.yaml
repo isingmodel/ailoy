@@ -1,7 +1,7 @@
 name: Python Windows Build
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   build-windows:
@@ -66,13 +66,16 @@ jobs:
         shell: powershell
         working-directory: ${{ github.workspace }}/bindings/python
         run: |
-          pip install build scikit-build-core
-          python -m build -w --outdir dist/
-          $wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
+          pip install build scikit-build-core delvewheel
+          python -m build -w --outdir dist
+          $dist_wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
+          delvewheel repair -h
+          delvewheel repair -w wheelhouse $dist_wheel
+          $wheel = Get-ChildItem wheelhouse\*.whl | Select-Object -First 1
           echo "WHEEL_FILENAME=$($wheel.Name)" >> $env:GITHUB_ENV
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.WHEEL_FILENAME }}
-          path: ${{ github.workspace }}/bindings/python/dist/${{ env.WHEEL_FILENAME }}
+          path: ${{ github.workspace }}/bindings/python/wheelhouse/${{ env.WHEEL_FILENAME }}
