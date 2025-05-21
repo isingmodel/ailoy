@@ -37,10 +37,10 @@ jobs:
       - name: Build and Install OpenBLAS
         run: |
           yum install -y gcc-gfortran
-          curl -LO https://www.openblas.net/pkgs/OpenBLAS-0.3.24.tar.gz
-          tar -xzf OpenBLAS-0.3.24.tar.gz
-          cd OpenBLAS-0.3.24
-          make NO_SHARED=1 USE_OPENMP=1
+          curl -LO https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.29/OpenBLAS-0.3.29.tar.gz
+          tar -xzf OpenBLAS-0.3.29.tar.gz
+          cd OpenBLAS-0.3.29
+          make -j$(nproc) NO_SHARED=1 USE_OPENMP=1
           make PREFIX=/opt/openblas install
         env:
           MAKEFLAGS: -j$(nproc)
