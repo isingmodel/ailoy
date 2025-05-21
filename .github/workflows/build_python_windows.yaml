@@ -1,7 +1,7 @@
 name: Python Windows Build
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   build-windows:
@@ -46,8 +46,8 @@ jobs:
       - name: Install LAPACK
         shell: powershell
         run: |
-          & "C:\vcpkg\vcpkg.exe" install lapack
-          $root = "C:\vcpkg\installed\x64-windows"
+          & "C:\vcpkg\vcpkg.exe" install lapack:x64-windows-static
+          $root = "C:\vcpkg\installed\x64-windows-static"
           echo "BLAS_ROOT=$root" >> $env:GITHUB_ENV
           echo "LAPACK_ROOT=$root" >> $env:GITHUB_ENV
           echo "$root\bin" >> $env:GITHUB_PATH
@@ -69,8 +69,7 @@ jobs:
           pip install build scikit-build-core delvewheel
           python -m build -w --outdir dist
           $dist_wheel = Get-ChildItem dist\*.whl | Select-Object -First 1
-          delvewheel repair -h
-          delvewheel repair -w wheelhouse $dist_wheel --add-path ${{ github.workspace }}/bindings/build/Release
+          delvewheel repair -w wheelhouse $dist_wheel --add-path ${{ github.workspace }}\bindings\_deps\mlc-llm-build\Release;${{ github.workspace }}\bindings\_deps\mlc-llm-build\tvm\Release
           $wheel = Get-ChildItem wheelhouse\*.whl | Select-Object -First 1
           echo "WHEEL_FILENAME=$($wheel.Name)" >> $env:GITHUB_ENV
 

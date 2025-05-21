@@ -1,7 +1,7 @@
 name: Node Linux Build
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   build-linux:
@@ -34,9 +34,16 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install BLAS/LAPACK
+      - name: Build and Install OpenBLAS
         run: |
-          yum install -y blas-devel lapack-devel
+          yum install -y gcc-gfortran
+          curl -LO https://www.openblas.net/pkgs/OpenBLAS-0.3.24.tar.gz
+          tar -xzf OpenBLAS-0.3.24.tar.gz
+          cd OpenBLAS-0.3.24
+          make NO_SHARED=1 USE_OPENMP=1
+          make PREFIX=/opt/openblas install
+        env:
+          MAKEFLAGS: -j$(nproc)
 
       - name: Install Vulkan SDK 1.4.313.0
         run: |
@@ -53,6 +60,9 @@ jobs:
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
           VULKAN_SDK: /opt/vulkan-sdk/x86_64
+          OpenBLAS_HOME: /opt/openblas
+          BLAS_LIBRARIES: /opt/openblas/lib/libopenblas.a
+          LAPACK_LIBRARIES: /opt/openblas/lib/libopenblas.a
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4

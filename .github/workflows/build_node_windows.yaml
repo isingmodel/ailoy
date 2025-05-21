@@ -42,8 +42,8 @@ jobs:
       - name: Install LAPACK
         shell: powershell
         run: |
-          & "C:\vcpkg\vcpkg.exe" install lapack
-          $root = "C:\vcpkg\installed\x64-windows"
+          & "C:\vcpkg\vcpkg.exe" install lapack:x64-windows-static
+          $root = "C:\vcpkg\installed\x64-windows-static"
           echo "BLAS_ROOT=$root" >> $env:GITHUB_ENV
           echo "LAPACK_ROOT=$root" >> $env:GITHUB_ENV
           echo "$root\bin" >> $env:GITHUB_PATH
@@ -62,12 +62,12 @@ jobs:
         shell: powershell
         run: |
           npm install
-          $packageName = (npm pack).Trim()
-          echo "package_name=$packageName" >> $env:GITHUB_ENV
+          $packageName = (npm pack | Select-Object -Last 1).Trim()
+          echo "packageName=$packageName" >> $env:GITHUB_ENV
         working-directory: ${{ github.workspace }}/bindings/js-node
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.package_name }}
-          path: ${{ github.workspace }}/bindings/js-node/${{ env.package_name }}
+          name: ${{ env.packageName }}
+          path: ${{ github.workspace }}/bindings/js-node/${{ env.packageName }}
