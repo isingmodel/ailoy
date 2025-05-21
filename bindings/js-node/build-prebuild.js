@@ -65,6 +65,19 @@ function getDynamicLibs(binaryPath) {
   return [];
 }
 
+function resolveDLLPath(dllName) {
+  const local = path.resolve(__dirname, "build/Release", dllName);
+  if (fs.existsSync(local)) return local;
+
+  const pathDirs = process.env.PATH.split(path.delimiter);
+  for (const dir of pathDirs) {
+    const fullPath = path.join(dir, dllName);
+    if (fs.existsSync(fullPath)) return fullPath;
+  }
+
+  return null; // 못 찾은 경우
+}
+
 function getWindowsDLLs(binaryPath) {
   const res = spawnSync("dumpbin", ["/DEPENDENTS", binaryPath], {
     encoding: "utf-8",
@@ -83,8 +96,8 @@ function getWindowsDLLs(binaryPath) {
         !line.startsWith("KERNEL") &&
         !line.startsWith("API-MS")
     )
-    .map((dll) => path.resolve(__dirname, "build/Release", dll))
-    .filter(fs.existsSync);
+    .map(resolveDLLPath)
+    .filter((p) => p !== null);
 }
 
 // Step 1: Build with prebuild
