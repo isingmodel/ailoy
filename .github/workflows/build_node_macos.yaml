@@ -22,8 +22,9 @@ jobs:
       - name: Create package
         run: | 
           npm install
-          PACKAGE_NAME=$(npm pack)
-          echo "package_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          PACKAGE_NAME=$(npm pack | tail -n 1)
+          echo $PACKAGE_NAME
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
         working-directory: ${{ github.workspace }}/bindings/js-node
         env:
           OpenMP_ROOT: /opt/homebrew/opt/libomp
@@ -31,5 +32,5 @@ jobs:
       - name: Upload npm package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.pack.outputs.package_name }}
-          path: ${{ github.workspace }}/bindings/js-node/${{ steps.pack.outputs.package_name }}
+          name: ${{ env.PACKAGE_NAME }}
+          path: ${{ github.workspace }}/bindings/js-node/${{ env.PACKAGE_NAME }}

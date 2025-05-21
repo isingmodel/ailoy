@@ -69,13 +69,47 @@ function resolveDLLPath(dllName) {
   const local = path.resolve(__dirname, "build/Release", dllName);
   if (fs.existsSync(local)) return local;
 
-  const pathDirs = process.env.PATH.split(path.delimiter);
-  for (const dir of pathDirs) {
-    const fullPath = path.join(dir, dllName);
-    if (fs.existsSync(fullPath)) return fullPath;
+  const redistRoots = [
+    "C:\\Program Files (x86)\\Microsoft Visual Studio",
+    "C:\\Program Files\\Microsoft Visual Studio",
+  ];
+  const editions = ["BuildTools", "Community", "Enterprise", "Professional"];
+
+  for (const base of redistRoots) {
+    if (!fs.existsSync(base)) continue;
+    const vsVersions = fs.readdirSync(base);
+    for (const version of vsVersions) {
+      for (const edition of editions) {
+        const redistPath = path.join(
+          base,
+          version,
+          edition,
+          "VC",
+          "Redist",
+          "MSVC"
+        );
+        if (!fs.existsSync(redistPath)) continue;
+
+        const msvcVersions = fs.readdirSync(redistPath);
+        for (const msvcVersion of msvcVersions) {
+          const archDir = path.join(redistPath, msvcVersion, "x64");
+          if (!fs.existsSync(archDir)) continue;
+
+          const subdirs = fs.readdirSync(archDir);
+          for (const sub of subdirs) {
+            const fullPath = path.join(archDir, sub, dllName);
+            if (fs.existsSync(fullPath)) return fullPath;
+          }
+        }
+      }
+    }
   }
 
-  return null; // 못 찾은 경우
+  // Fallback to System32
+  const sys32Path = path.join("C:\\Windows\\System32", dllName);
+  if (fs.existsSync(sys32Path)) return sys32Path;
+
+  return null;
 }
 
 function getWindowsDLLs(binaryPath) {
