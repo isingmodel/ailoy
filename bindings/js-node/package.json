@@ -13,6 +13,9 @@
         "prebuilds",
         "README.md"
     ],
+    "bin": {
+        "ailoy": "./dist/cli.cjs"
+    },
     "scripts": {
         "build:cpp": "node build-cmakejs.js",
         "build:ts": "rollup -c --bundleConfigAsCjs",
@@ -77,6 +80,8 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.11.2",
+        "cli-table3": "^0.6.5",
+        "commander": "^14.0.0",
         "jmespath": "^0.16.0"
     }
 }
