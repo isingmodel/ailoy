@@ -60,22 +60,23 @@ jobs:
       - name: Build wheel
         working-directory: bindings/python
         run: |
-          $PYTHON_BIN/python -m build --wheel --outdir /tmp/dist
+          $PYTHON_BIN/python -m build --wheel --outdir dist
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
           VULKAN_SDK: /opt/vulkan-sdk/x86_64
           CMAKE_PREFIX_PATH: /opt/openblas
 
       - name: Repair wheel
+        working-directory: bindings/python
         run: |
-          mkdir -p /tmp/wheelhouse
-          auditwheel repair /tmp/dist/*.whl --plat manylinux_2_28_x86_64 -w /tmp/wheelhouse
-          auditwheel show /tmp/wheelhouse/*.whl
-          WHEEL_NAME=$(basename dist/*.whl)
+          mkdir -p wheelhouse
+          auditwheel repair dist/*.whl --plat manylinux_2_28_x86_64 -w wheelhouse
+          auditwheel show wheelhouse/*.whl
+          WHEEL_NAME=$(basename wheelhouse/*.whl)
           echo "WHEEL_FILENAME=$WHEEL_NAME" >> $GITHUB_ENV
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.WHEEL_FILENAME }}
-          path: /tmp/wheelhouse
+          path: bindings/python/wheelhouse
