@@ -257,7 +257,7 @@ std::string get_models_url() {
     return "https://models.download.ailoy.co";
 }
 
-std::pair<bool, std::string> download_file(httplib::Client &client,
+std::pair<bool, std::string> download_file(httplib::SSLClient &client,
                                            const std::string &remote_path,
                                            const fs::path &local_path) {
   httplib::Result res = client.Get(("/" + remote_path).c_str());
@@ -275,7 +275,7 @@ std::pair<bool, std::string> download_file(httplib::Client &client,
 }
 
 std::pair<bool, std::string> download_file_with_progress(
-    httplib::Client &client, const std::string &remote_path,
+    httplib::SSLClient &client, const std::string &remote_path,
     const fs::path &local_path,
     std::function<bool(uint64_t, uint64_t)> progress_callback) {
   SigintGuard sigint_guard;
@@ -433,9 +433,11 @@ download_model(const std::string &model_id, const std::string &quantization,
                bool print_progress_bar) {
   model_cache_download_result_t result{.success = false};
 
-  auto client = httplib::Client(get_models_url());
+  auto client = httplib::SSLClient(get_models_url());
   client.set_connection_timeout(10, 0);
   client.set_read_timeout(60, 0);
+  client.enable_server_certificate_verification(false);
+  client.enable_server_hostname_verification(false);
 
   // Create local cache directory
   fs::path model_base_path = get_model_base_path(model_id);
