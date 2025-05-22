@@ -57,10 +57,10 @@ interface MessageDelta {
 /** Types for LLM Model Definitions */
 
 export type TVMModelName =
-  | "qwen3-8b"
-  | "qwen3-4b"
-  | "qwen3-1.7b"
-  | "qwen3-0.6b";
+  | "Qwen/Qwen3-8B"
+  | "Qwen/Qwen3-4B"
+  | "Qwen/Qwen3-1.7B"
+  | "Qwen/Qwen3-0.6B";
 
 export type OpenAIModelName = "gpt-4o";
 
@@ -73,25 +73,25 @@ interface ModelDescription {
 }
 
 const modelDescriptions: Record<ModelName, ModelDescription> = {
-  "qwen3-8b": {
+  "Qwen/Qwen3-8B": {
     modelId: "Qwen/Qwen3-8B",
     componentType: "tvm_language_model",
     defaultSystemMessage:
       "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
   },
-  "qwen3-4b": {
+  "Qwen/Qwen3-4B": {
     modelId: "Qwen/Qwen3-4B",
     componentType: "tvm_language_model",
     defaultSystemMessage:
       "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
   },
-  "qwen3-1.7b": {
+  "Qwen/Qwen3-1.7B": {
     modelId: "Qwen/Qwen3-1.7B",
     componentType: "tvm_language_model",
     defaultSystemMessage:
       "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
   },
-  "qwen3-0.6b": {
+  "Qwen/Qwen3-0.6B": {
     modelId: "Qwen/Qwen3-0.6B",
     componentType: "tvm_language_model",
     defaultSystemMessage:
@@ -770,6 +770,8 @@ export async function defineAgent(
   args?: {
     /** Optional system message to set the initial assistant context */
     systemMessage?: string;
+    /** Optional device id to set the device id to run LLM model */
+    device?: number;
     /** A parameter for API key usage.
      * This field is ignored if the model does not require authentication. */
     apiKey?: string;
@@ -782,6 +784,7 @@ export async function defineAgent(
 
   // Attribute input for call `rt.define`
   let attrs: Record<string, any> = {};
+  if (args_.device) attrs["device"] = args_.device;
   if (args_.apiKey) attrs["api_key"] = args_.apiKey;
 
   await agent.define(modelName, attrs);
