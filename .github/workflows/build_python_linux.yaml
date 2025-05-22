@@ -63,7 +63,7 @@ jobs:
           $PYTHON_BIN/python -m build --wheel --outdir dist
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
-          VULKAN_SDK: /opt/vulkan-sdk/x86_64
+          VULKAN_SDK: /opt/vulkan-sdk
           CMAKE_PREFIX_PATH: /opt/openblas
 
       - name: Repair wheel
