@@ -1,5 +1,7 @@
 import * as MCPClient from "@modelcontextprotocol/sdk/client/index.js";
 import * as MCPClientStdio from "@modelcontextprotocol/sdk/client/stdio.js";
+import boxen from "boxen";
+import chalk from "chalk";
 import { search } from "jmespath";
 
 import { Runtime, generateUUID } from "./runtime";
@@ -489,11 +491,31 @@ export class Agent {
       });
       await client.connect(transport);
 
-      const { content } = await client.callTool({
+      const result = await client.callTool({
         name: tool.name,
         arguments: inputs,
       });
-      return content;
+      const content = result.content as Array<any>;
+      const parsedContent = content.map((item) => {
+        if (item.type === "text") {
+          // Text Content
+          return item.text;
+        } else if (item.type === "image") {
+          // Image Content
+          return item.data;
+        } else if (item.type === "resource") {
+          // Resource Content
+          if (item.resource.text !== undefined) {
+            // Text Resource
+            return item.resource.text;
+          } else {
+            // Blob Resource
+            return item.resource.blob;
+          }
+        }
+      });
+
+      return parsedContent;
     };
     const desc: ToolDescription = {
       name: tool.name,
@@ -642,6 +664,99 @@ export class Agent {
           return;
         }
       }
+    }
+  }
+
+  private _printResponseText(resp: AgentResponseText) {
+    const content =
+      resp.type === "reasoning" ? chalk.yellow(resp.content) : resp.content;
+    process.stdout.write(content);
+    if (resp.endOfTurn) {
+      process.stdout.write("\n");
+    }
+  }
+
+  private _printResponseToolCall(resp: AgentResponseToolCall) {
+    const title =
+      chalk.magenta("Tool Call") +
+      ": " +
+      chalk.bold(resp.content.function.name) +
+      ` (${resp.content.id})`;
+    const content = JSON.stringify(resp.content.function.arguments, null, 2);
+    const box = boxen(content, {
+      title,
+      titleAlignment: "left",
+      padding: {
+        left: 1,
+        right: 1,
+        top: 0,
+        bottom: 0,
+      },
+    });
+    console.log(box);
+  }
+
+  private _printResponseToolResult(resp: AgentResponseToolResult) {
+    const title =
+      chalk.green("Tool Result") +
+      ": " +
+      chalk.bold(resp.content.name) +
+      ` (${resp.content.tool_call_id})`;
+
+    let content;
+    try {
+      // Try to parse as json
+      content = JSON.stringify(JSON.parse(resp.content.content), null, 2);
+    } catch (e) {
+      // Use original content if not json deserializable
+      content = resp.content.content;
+    }
+    // Truncate long contents
+    if (content.length > 500) {
+      content = content.slice(0, 500) + "...(truncated)";
+    }
+
+    const box = boxen(content, {
+      title,
+      titleAlignment: "left",
+      padding: {
+        left: 1,
+        right: 1,
+        top: 0,
+        bottom: 0,
+      },
+    });
+    console.log(box);
+  }
+
+  private _printResponseError(resp: AgentResponseError) {
+    const title = chalk.red.bold("Error");
+    const box = boxen(resp.content, {
+      title,
+      titleAlignment: "left",
+      padding: {
+        left: 1,
+        right: 1,
+        top: 0,
+        bottom: 0,
+      },
+    });
+    console.log(box);
+  }
+
+  /** Prints agent's responses in a pretty format */
+  print(
+    /** agent's response yielded from `query()` */
+    resp: AgentResponse
+  ) {
+    if (resp.type === "output_text" || resp.type === "reasoning") {
+      this._printResponseText(resp);
+    } else if (resp.type === "tool_call") {
+      this._printResponseToolCall(resp);
+    } else if (resp.type === "tool_call_result") {
+      this._printResponseToolResult(resp);
+    } else if (resp.type === "error") {
+      this._printResponseError(resp);
     }
   }
 }
