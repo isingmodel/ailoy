@@ -36,6 +36,15 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile $output
           Start-Process -FilePath ".\openssl-installer.exe" -ArgumentList "/silent", "/verysilent", "/sp-", "/SUPPRESSMSGBOXES" -Wait
 
+      - name: Install LAPACK
+        shell: powershell
+        run: |
+          & "C:\vcpkg\vcpkg.exe" install lapack:x64-windows-static
+          $root = "C:\vcpkg\installed\x64-windows-static"
+          echo "BLAS_ROOT=$root" >> $env:GITHUB_ENV
+          echo "LAPACK_ROOT=$root" >> $env:GITHUB_ENV
+          echo "$root\bin" >> $env:GITHUB_PATH
+
       - name: Install Vulkan SDK
         shell: powershell
         run: |
@@ -45,16 +54,7 @@ jobs:
           Start-Process -FilePath ".\vulkan-sdk.exe" -ArgumentList "--accept-licenses", "--default-answer", "--confirm-command", "install", "--root", "C:\VulkanSDK" -Wait
           Get-ChildItem C:\VulkanSDK\Bin
           echo "VULKAN_SDK=C:\VulkanSDK" >> $env:GITHUB_ENV
-          echo "PATH=C:\VulkanSDK\Bin;$env:PATH" >> $env:GITHUB_ENV
-
-      - name: Install LAPACK
-        shell: powershell
-        run: |
-          & "C:\vcpkg\vcpkg.exe" install lapack:x64-windows-static
-          $root = "C:\vcpkg\installed\x64-windows-static"
-          echo "BLAS_ROOT=$root" >> $env:GITHUB_ENV
-          echo "LAPACK_ROOT=$root" >> $env:GITHUB_ENV
-          echo "$root\bin" >> $env:GITHUB_PATH
+          echo "PATH=C:\VulkanSDK\Bin;C:\VulkanSDK\Lib;$env:PATH" >> $env:GITHUB_ENV
 
       - name: Build wheel
         shell: powershell
