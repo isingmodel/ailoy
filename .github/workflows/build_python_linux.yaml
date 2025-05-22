@@ -29,7 +29,7 @@ jobs:
 
       - name: Install Vulkan SDK
         run: |
-          yum install -y vulkan-devel
+          yum install -y vulkan-devel spirv-headers-devel spirv-tools-devel spirv-tools-libs
 
       - name: Install OpenSSL 3.0.16
         run: |
