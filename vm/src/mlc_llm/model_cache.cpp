@@ -212,7 +212,9 @@ private:
 };
 
 // Definition of static variable
+#if !defined(_WIN32)
 struct sigaction SigintGuard::old_action_;
+#endif
 std::atomic<bool> SigintGuard::g_sigint{false};
 
 namespace fs = std::filesystem;
