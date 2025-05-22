@@ -593,7 +593,8 @@ value_or_error_t list_local_models(std::shared_ptr<const value_t> inputs) {
     item->insert_or_assign("type", create<string_t>(model.model_type));
     item->insert_or_assign("model_id", create<string_t>(model.model_id));
     item->insert_or_assign("attributes", from_nlohmann_json(model.attributes));
-    item->insert_or_assign("model_path", create<string_t>(model.model_path));
+    item->insert_or_assign("model_path",
+                           create<string_t>(model.model_path.string()));
     item->insert_or_assign("total_bytes", create<uint_t>(model.total_bytes));
     results->push_back(item);
   }
