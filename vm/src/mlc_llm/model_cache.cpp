@@ -433,7 +433,8 @@ download_model(const std::string &model_id, const std::string &quantization,
                bool print_progress_bar) {
   model_cache_download_result_t result{.success = false};
 
-  auto client = httplib::SSLClient(get_models_url());
+  auto client = httplib::SSLClient(
+      std::regex_replace(get_models_url(), std::regex("^http(s)://"), ""));
   client.set_connection_timeout(10, 0);
   client.set_read_timeout(60, 0);
   client.enable_server_certificate_verification(false);
