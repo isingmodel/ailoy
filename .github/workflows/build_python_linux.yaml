@@ -42,6 +42,18 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      - name: Prerequisite Vulkan SDK
+        run: |
+          yum install -y epel-release
+          yum install -y jq
+
+      - name: Prepare Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: 1.3.296.0
+          vulkan-components: Vulkan-Headers, Vulkan-Loader
+          vulkan-use-cache: true
+
       - name: Build and Install OpenBLAS
         run: |
           yum install -y gcc-gfortran
@@ -50,13 +62,6 @@ jobs:
           cd OpenBLAS-0.3.29
           make -j$(nproc) NO_SHARED=1 USE_OPENMP=0
           make PREFIX=/opt/openblas NO_SHARED=1 USE_OPENMP=0 install
-
-      - name: Prepare Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@v1.2.1
-        with:
-          vulkan-query-version: 1.3.296.0
-          vulkan-components: Vulkan-Headers, Vulkan-Loader
-          vulkan-use-cache: true
 
       - name: Build wheel
         working-directory: bindings/python
