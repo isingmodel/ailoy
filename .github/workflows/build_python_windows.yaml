@@ -43,7 +43,7 @@ jobs:
           $output = "vulkan-sdk.exe"
           Invoke-WebRequest -Uri $url -OutFile $output
           Start-Process -FilePath ".\vulkan-sdk.exe" -ArgumentList "--accept-licenses", "--default-answer", "--confirm-command", "install", "--root", "C:\VulkanSDK" -Wait
-          Get-ChildItem "C:\VulkanSDK\Bin
+          Get-ChildItem C:\VulkanSDK\Bin
           echo "VULKAN_SDK=C:\VulkanSDK" >> $env:GITHUB_ENV
           echo "PATH=C:\VulkanSDK\Bin;$env:PATH" >> $env:GITHUB_ENV
 
