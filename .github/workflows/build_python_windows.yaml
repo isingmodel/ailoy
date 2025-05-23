@@ -41,10 +41,24 @@ jobs:
       #     Invoke-WebRequest -Uri $url -OutFile $output
       #     Start-Process -FilePath ".\openssl-installer.exe" -ArgumentList "/silent", "/verysilent", "/sp-", "/SUPPRESSMSGBOXES" -Wait
 
-      - name: Install LAPACK
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\packages
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+
+      - name: Install dependencies with vcpkg
         shell: powershell
         run: |
-          & "C:\vcpkg\vcpkg.exe" install lapack:x64-windows-static
+          & "C:\vcpkg\vcpkg.exe" install
+
+      - name: Set environment variables for dependencies
+        shell: powershell
+        run: |
           $root = "C:\vcpkg\installed\x64-windows-static"
           echo "BLAS_ROOT=$root" >> $env:GITHUB_ENV
           echo "LAPACK_ROOT=$root" >> $env:GITHUB_ENV
