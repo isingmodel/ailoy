@@ -2,8 +2,8 @@
     "name": "ailoy",
     "version-string": "0.1.0",
     "dependencies": [
-        "openblas",
-        "lapack-reference"
+        "openblas:x64-windows-static",
+        "lapack-reference:x64-windows-static"
     ],
     "builtin-baseline": "ca846b21276c9a3171074ac8d2b4f6516894a7d0"
 }
