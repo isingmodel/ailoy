@@ -28,13 +28,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install OpenSSL
+      - name: Install OpenSSL using Chocolatey
         shell: powershell
         run: |
-          $url = "https://slproweb.com/download/Win64OpenSSL-3_5_0.exe"
-          $output = "openssl-installer.exe"
-          Invoke-WebRequest -Uri $url -OutFile $output
-          Start-Process -FilePath ".\openssl-installer.exe" -ArgumentList "/silent", "/verysilent", "/sp-", "/SUPPRESSMSGBOXES" -Wait
+          choco install openssl -y
+
+      # - name: Install OpenSSL
+      #   shell: powershell
+      #   run: |
+      #     $url = "https://slproweb.com/download/Win64OpenSSL-3_5_0.exe"
+      #     $output = "openssl-installer.exe"
+      #     Invoke-WebRequest -Uri $url -OutFile $output
+      #     Start-Process -FilePath ".\openssl-installer.exe" -ArgumentList "/silent", "/verysilent", "/sp-", "/SUPPRESSMSGBOXES" -Wait
 
       - name: Install LAPACK
         shell: powershell
