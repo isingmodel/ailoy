@@ -1,0 +1,10 @@
+{
+    "name": "ailoy",
+    "version-string": "0.1.0",
+    "dependencies": [
+        "openblas",
+        "lapack-reference",
+        "openssl"
+    ],
+    "builtin-baseline": "ca846b21276c9a3171074ac8d2b4f6516894a7d0"
+}
