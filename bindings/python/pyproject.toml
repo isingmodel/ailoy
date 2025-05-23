@@ -36,6 +36,7 @@ wheel.packages = ["ailoy"]
 
 [tool.scikit-build.cmake.define]
 AILOY_WITH_TEST = "OFF"
+CMAKE_TOOLCHAIN_FILE = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 [tool.pytest.ini_options]
 addopts = "--capture=tee-sys --strict-markers"

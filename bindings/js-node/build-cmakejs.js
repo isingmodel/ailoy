@@ -28,7 +28,13 @@ if (buildResult.error || buildResult.status !== 0) {
 // 2. Install (runtime deps 포함)
 const installResult = spawnSync(
   "cmake",
-  ["--install", buildDir, "--prefix", installDir],
+  [
+    "--install",
+    buildDir,
+    "--prefix",
+    installDir,
+    "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+  ],
   {
     stdio: "inherit",
   }
