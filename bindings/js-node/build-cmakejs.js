@@ -12,6 +12,7 @@ const buildArgs = [
   "build",
   "--CDNODE:BOOL=ON",
   "--CDAILOY_WITH_TEST:BOOL=OFF",
+  "--CDCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
   `--parallel ${require("os").cpus().length}`,
 ];
 
@@ -28,13 +29,7 @@ if (buildResult.error || buildResult.status !== 0) {
 // 2. Install (runtime deps 포함)
 const installResult = spawnSync(
   "cmake",
-  [
-    "--install",
-    buildDir,
-    "--prefix",
-    installDir,
-    "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
-  ],
+  ["--install", buildDir, "--prefix", installDir],
   {
     stdio: "inherit",
   }
