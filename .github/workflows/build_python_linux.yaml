@@ -1,23 +1,35 @@
-name: Node Linux Build
+name: Python Linux Build
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
+  build:
+    name: Build for Python ${{ matrix.python }}
     runs-on: ubuntu-latest
 
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
 
+    strategy:
+      matrix:
+        python: ["cp310-cp310", "cp311-cp311", "cp312-cp312", "cp313-cp313"]
+
+    env:
+      PYTHON_BIN: /opt/python/${{ matrix.python }}/bin
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Node.js (18.x) and npm
+      - name: Install Python build dependencies
         run: |
-          curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-          yum install -y nodejs
+          $PYTHON_BIN/pip install -U pip
+          $PYTHON_BIN/pip install build scikit-build-core
+
+      - name: Install Vulkan SDK
+        run: |
+          yum install -y vulkan-devel spirv-headers-devel spirv-tools-devel spirv-tools-libs
 
       - name: Install OpenSSL 3.0.16
         run: |
@@ -42,29 +54,29 @@ jobs:
           cd OpenBLAS-0.3.29
           make -j$(nproc) NO_SHARED=1 USE_OPENMP=0
           make PREFIX=/opt/openblas NO_SHARED=1 USE_OPENMP=0 install
-        env:
-          MAKEFLAGS: -j$(nproc)
 
-      - name: Install Vulkan SDK 1.4.313.0
+      - name: Build wheel
+        working-directory: bindings/python
         run: |
-          curl -LO https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkan-sdk-1.4.313.0.tar.xz
-          mkdir -p /opt/vulkan-sdk
-          tar -xJf vulkan-sdk-1.4.313.0.tar.xz --strip-components=2 -C /opt/vulkan-sdk
-
-      - name: Create package
-        run: |
-          npm install
-          PACKAGE_NAME=$(npm pack | tail -n 1)
-          echo "PACKAGE_NAME: $PACKAGE_NAME"
-          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-        working-directory: ${{ github.workspace }}/bindings/js-node
+          $PYTHON_BIN/python -m build --wheel --outdir dist
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
           VULKAN_SDK: /opt/vulkan-sdk
           CMAKE_PREFIX_PATH: /opt/openblas
 
-      - name: Upload npm package
+      - name: Repair wheel
+        working-directory: bindings/python
+        run: |
+          mkdir -p wheelhouse
+          auditwheel repair dist/*.whl -w wheelhouse \
+            --plat manylinux_2_28_x86_64 \
+            --exclude libvulkan.so.*
+          auditwheel show wheelhouse/*.whl
+          WHEEL_NAME=$(basename wheelhouse/*.whl)
+          echo "WHEEL_FILENAME=$WHEEL_NAME" >> $GITHUB_ENV
+
+      - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PACKAGE_NAME }}
-          path: ${{ github.workspace }}/bindings/js-node/${{ env.PACKAGE_NAME }}
+          name: ${{ env.WHEEL_FILENAME }}
+          path: bindings/python/wheelhouse

@@ -14,43 +14,60 @@ if (DEFINED NODE)
   target_include_directories(ailoy_addon PRIVATE ${CMAKE_JS_INC} ${NODE_ADDON_API_INCLUDE_DIR})
   find_package(OpenSSL REQUIRED)
   target_link_libraries(ailoy_addon PUBLIC ailoy_core_obj ailoy_broker_client_obj ailoy_broker_obj ailoy_vm_obj OpenSSL::Crypto OpenSSL::SSL ${CMAKE_JS_LIB})
-  # Options to enable sanitizer (not working on examples though)
-  # target_compile_options(ailoy_addon PRIVATE -fsanitize=address -fno-omit-frame-pointer)
-  # target_link_options(ailoy_addon PRIVATE -fsanitize=address)
 
   if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
     execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
   endif()
 
-  list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.node)
-  if(WIN32)
-    list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.dll)
-    list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.dll)
-    if(CMAKE_GENERATOR MATCHES "Visual Studio")
-      list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:ailoy_addon.pdb>)
-      list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:mlc_llm.pdb>)
-      list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:tvm_runtime.pdb>)
-    elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.pdb)
-      list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.pdb)
-      list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.pdb)
-    endif()
-  endif()
-
-  set(AILOY_JS_NODE_OUTPUTS_SRC ${AILOY_JS_NODE_OUTPUTS})
-  list(TRANSFORM AILOY_JS_NODE_OUTPUTS_SRC PREPEND $<TARGET_FILE_DIR:ailoy_addon>/)
-  set(AILOY_JS_NODE_OUTPUT_DST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  set(AILOY_JS_NODE_OUTPUTS_DST ${AILOY_JS_NODE_OUTPUTS})
-  list(TRANSFORM AILOY_JS_NODE_OUTPUTS_DST PREPEND ${AILOY_JS_NODE_OUTPUT_DST_DIR}/)
-  add_custom_command(
-    TARGET ailoy_addon
-    POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        ${AILOY_JS_NODE_OUTPUTS_SRC}
-        ${AILOY_JS_NODE_OUTPUT_DST_DIR}
-    COMMENT "Copying build artifacts to output directory"
-    BYPRODUCTS
-        ${AILOY_JS_NODE_OUTPUTS_DST}
+  # 빌드 후 install 경로 지정
+  install(TARGETS ailoy_addon
+    LIBRARY DESTINATION .
+    RUNTIME DESTINATION .
   )
+
+  # 런타임 DLL/SO 복사: install 시점에 분석해서 같이 복사
+  install(CODE [[
+    file(GET_RUNTIME_DEPENDENCIES
+      EXECUTABLES "$<TARGET_FILE:ailoy_addon>"
+      RESOLVED_DEPENDENCIES_VAR deps
+      UNRESOLVED_DEPENDENCIES_VAR missing
+    )
+    foreach(dep IN LISTS deps)
+      message(STATUS "Installing runtime dependency: ${dep}")
+      file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}"
+          TYPE SHARED_LIBRARY FILES "${dep}")
+    endforeach()
+  ]])
+
+  # list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.node)
+  # if(WIN32)
+  #   list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.dll)
+  #   list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.dll)
+  #   if(CMAKE_GENERATOR MATCHES "Visual Studio")
+  #     list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:ailoy_addon.pdb>)
+  #     list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:mlc_llm.pdb>)
+  #     list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:tvm_runtime.pdb>)
+  #   elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  #     list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.pdb)
+  #     list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.pdb)
+  #     list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.pdb)
+  #   endif()
+  # endif()
+
+  # set(AILOY_JS_NODE_OUTPUTS_SRC ${AILOY_JS_NODE_OUTPUTS})
+  # list(TRANSFORM AILOY_JS_NODE_OUTPUTS_SRC PREPEND $<TARGET_FILE_DIR:ailoy_addon>/)
+  # set(AILOY_JS_NODE_OUTPUT_DST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  # set(AILOY_JS_NODE_OUTPUTS_DST ${AILOY_JS_NODE_OUTPUTS})
+  # list(TRANSFORM AILOY_JS_NODE_OUTPUTS_DST PREPEND ${AILOY_JS_NODE_OUTPUT_DST_DIR}/)
+  # add_custom_command(
+  #   TARGET ailoy_addon
+  #   POST_BUILD
+  #   COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+  #       ${AILOY_JS_NODE_OUTPUTS_SRC}
+  #       ${AILOY_JS_NODE_OUTPUT_DST_DIR}
+  #   COMMENT "Copying build artifacts to output directory"
+  #   BYPRODUCTS
+  #       ${AILOY_JS_NODE_OUTPUTS_DST}
+  # )
 
 endif()

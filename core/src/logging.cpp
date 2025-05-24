@@ -1,5 +1,6 @@
 #include "logging.hpp"
 
+#include <algorithm>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
@@ -10,7 +11,7 @@ namespace ailoy {
 std::mutex m;
 
 std::shared_ptr<spdlog::logger> get_logger() {
-  static std::__1::shared_ptr<spdlog::logger> logger = nullptr;
+  static std::shared_ptr<spdlog::logger> logger = nullptr;
 
   if (!logger) {
     logger = spdlog::stdout_color_mt("AILOY");

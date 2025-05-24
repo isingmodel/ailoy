@@ -1,12 +1,11 @@
 const { spawnSync } = require("child_process");
 const path = require("path");
 
+const buildDir = "build";
+const installDir = "vv";
+
 const buildArgs = [
-  "prebuild",
-  "--napi",
-  "--backend",
   "cmake-js",
-  "--",
   "-d",
   "../..",
   "-O",
@@ -24,4 +23,18 @@ const buildResult = spawnSync("npx", buildArgs, {
 if (buildResult.error || buildResult.status !== 0) {
   console.error("build failed.");
   process.exit(buildResult.status || 1);
+}
+
+// 2. Install (runtime deps 포함)
+const installResult = spawnSync(
+  "cmake",
+  ["--install", buildDir, "--prefix", installDir],
+  {
+    stdio: "inherit",
+  }
+);
+
+if (installResult.error || installResult.status !== 0) {
+  console.error("install failed.");
+  process.exit(installResult.status || 1);
 }
