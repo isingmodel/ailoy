@@ -7,6 +7,10 @@ jobs:
   build-windows:
     runs-on: windows-2022
 
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+
     steps:
       - name: Enable Windows long path support
         shell: powershell
@@ -22,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node }}
 
       - name: Install OpenSSL
         shell: powershell
@@ -32,10 +36,10 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile $output
           Start-Process -FilePath ".\openssl-installer.exe" -ArgumentList "/silent", "/verysilent", "/sp-", "/SUPPRESSMSGBOXES" -Wait
 
-      - name: Install LAPACK
+      - name: Install OpenBLAS
         shell: powershell
         run: |
-          & "C:\vcpkg\vcpkg.exe" install lapack:x64-windows-static
+          & "C:\vcpkg\vcpkg.exe" install openblas:x64-windows-static lapack-reference:x64-windows-static
           $root = "C:\vcpkg\installed\x64-windows-static"
           echo "BLAS_ROOT=$root" >> $env:GITHUB_ENV
           echo "LAPACK_ROOT=$root" >> $env:GITHUB_ENV
@@ -44,23 +48,25 @@ jobs:
       - name: Install Vulkan SDK
         shell: powershell
         run: |
-          $url = "https://sdk.lunarg.com/sdk/download/1.4.313.0/windows/vulkan-sdk.exe"
+          $url = "https://sdk.lunarg.com/sdk/download/1.3.283.0/windows/vulkan-sdk.exe"
           $output = "vulkan-sdk.exe"
           Invoke-WebRequest -Uri $url -OutFile $output
           Start-Process -FilePath ".\vulkan-sdk.exe" -ArgumentList "--accept-licenses", "--default-answer", "--confirm-command", "install", "--root", "C:\VulkanSDK" -Wait
           echo "VULKAN_SDK=C:\VulkanSDK" >> $env:GITHUB_ENV
-          echo "PATH=C:\VulkanSDK\Bin;$env:PATH" >> $env:GITHUB_ENV
+          echo "PATH=C:\VulkanSDK\Bin;C:\VulkanSDK\Lib;$env:PATH" >> $env:GITHUB_ENV
 
       - name: Create package
         shell: powershell
         run: |
           npm install
-          $packageName = (npm pack | Select-Object -Last 1).Trim()
+          npm pack
+          $packageName = Get-ChildItem -Name "ailoy-*.tgz" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          echo "packageName=$packageName"
           echo "packageName=$packageName" >> $env:GITHUB_ENV
         working-directory: ${{ github.workspace }}/bindings/js-node
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.packageName }}
+          name: ${{ env.packageName }}.${{ matrix.node }}
           path: ${{ github.workspace }}/bindings/js-node/${{ env.packageName }}

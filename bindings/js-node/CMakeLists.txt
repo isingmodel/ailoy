@@ -19,55 +19,87 @@ if (DEFINED NODE)
     execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
   endif()
 
-  # 빌드 후 install 경로 지정
+  # Copy target file
   install(TARGETS ailoy_addon
     LIBRARY DESTINATION .
     RUNTIME DESTINATION .
+    COMPONENT ailoy_addon
   )
 
-  # 런타임 DLL/SO 복사: install 시점에 분석해서 같이 복사
+  # Copy runtime dependencies
+  install(CODE "set(IGNORE_LIST_FILENAME \"libignore_${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR}.txt\")")
   install(CODE [[
-    file(GET_RUNTIME_DEPENDENCIES
-      EXECUTABLES "$<TARGET_FILE:ailoy_addon>"
-      RESOLVED_DEPENDENCIES_VAR deps
-      UNRESOLVED_DEPENDENCIES_VAR missing
-    )
-    foreach(dep IN LISTS deps)
-      message(STATUS "Installing runtime dependency: ${dep}")
-      file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}"
-          TYPE SHARED_LIBRARY FILES "${dep}")
+    set(IGNORE_LIST_FILENAME "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${IGNORE_LIST_FILENAME}")
+    set(entrypoint "$<TARGET_FILE:ailoy_addon>")
+    set(to_process ${entrypoint})
+    set(all_deps "")
+    set(seen_deps "${entrypoint}")
+
+    # Recusively extract dependencies
+    while(NOT "${to_process}" STREQUAL "")
+      set(new_to_process "")
+      foreach(target IN LISTS to_process)
+        file(GET_RUNTIME_DEPENDENCIES
+          EXECUTABLES "${target}"
+          RESOLVED_DEPENDENCIES_VAR deps
+          UNRESOLVED_DEPENDENCIES_VAR missing
+        )
+        foreach(dep IN LISTS deps)
+          list(FIND seen_deps "${dep}" already_seen)
+          if(already_seen EQUAL -1)
+            list(APPEND all_deps "${dep}")
+            list(APPEND new_to_process "${dep}")
+            list(APPEND seen_deps "${dep}")
+          endif()
+        endforeach()
+      endforeach()
+      set(to_process ${new_to_process})
+    endwhile()
+
+    list(REMOVE_DUPLICATES all_deps)
+
+    if(EXISTS ${IGNORE_LIST_FILENAME})
+      message(STATUS "Using ignore file: ${IGNORE_LIST_FILENAME}")
+      file(STRINGS "${IGNORE_LIST_FILENAME}" ignorelist ENCODING UTF-8)
+    else()
+      message(STATUS "Ignore list not found: ${IGNORE_LIST_FILENAME}")
+      set(ignorelist "")
+    endif()
+
+    # Copy files
+    foreach(dep IN LISTS all_deps)
+      # Find in ignorelist
+      set(skip FALSE)
+      get_filename_component(dep_filename "${dep}" NAME)
+      foreach(ignore IN LISTS ignorelist)
+        if(dep_filename STREQUAL ignore)
+          set(skip TRUE)
+          break()
+        endif()
+      endforeach()
+
+      if(skip)
+        # Skip if in ignorelist
+        message(STATUS "Skipping ignored dependency: ${dep}")
+      else()
+        get_filename_component(real_dep "${dep}" REALPATH)
+        get_filename_component(dep_basename "${dep}" NAME) # libfoo.so.1
+        get_filename_component(real_basename "${real_dep}" NAME) # libfoo.so.1.2.3
+        set(target_path "${CMAKE_INSTALL_PREFIX}/${dep_basename}")
+
+        # Copy real file and rename to symlink name
+        file(COPY "${real_dep}" DESTINATION "${CMAKE_INSTALL_PREFIX}")
+        file(RENAME "${CMAKE_INSTALL_PREFIX}/${real_basename}" "${target_path}")
+        message(STATUS "Renamed ${real_basename} -> ${dep_basename}")
+      endif()
     endforeach()
-  ]])
+]])
 
-  # list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.node)
-  # if(WIN32)
-  #   list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.dll)
-  #   list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.dll)
-  #   if(CMAKE_GENERATOR MATCHES "Visual Studio")
-  #     list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:ailoy_addon.pdb>)
-  #     list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:mlc_llm.pdb>)
-  #     list(APPEND AILOY_JS_NODE_OUTPUTS $<$<CONFIG:Debug>:tvm_runtime.pdb>)
-  #   elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  #     list(APPEND AILOY_JS_NODE_OUTPUTS ailoy_addon.pdb)
-  #     list(APPEND AILOY_JS_NODE_OUTPUTS mlc_llm.pdb)
-  #     list(APPEND AILOY_JS_NODE_OUTPUTS tvm_runtime.pdb)
-  #   endif()
-  # endif()
-
-  # set(AILOY_JS_NODE_OUTPUTS_SRC ${AILOY_JS_NODE_OUTPUTS})
-  # list(TRANSFORM AILOY_JS_NODE_OUTPUTS_SRC PREPEND $<TARGET_FILE_DIR:ailoy_addon>/)
-  # set(AILOY_JS_NODE_OUTPUT_DST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-  # set(AILOY_JS_NODE_OUTPUTS_DST ${AILOY_JS_NODE_OUTPUTS})
-  # list(TRANSFORM AILOY_JS_NODE_OUTPUTS_DST PREPEND ${AILOY_JS_NODE_OUTPUT_DST_DIR}/)
-  # add_custom_command(
-  #   TARGET ailoy_addon
-  #   POST_BUILD
-  #   COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-  #       ${AILOY_JS_NODE_OUTPUTS_SRC}
-  #       ${AILOY_JS_NODE_OUTPUT_DST_DIR}
-  #   COMMENT "Copying build artifacts to output directory"
-  #   BYPRODUCTS
-  #       ${AILOY_JS_NODE_OUTPUTS_DST}
-  # )
+# Set RPATH
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(CMAKE_INSTALL_RPATH "\$ORIGIN")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(CMAKE_INSTALL_RPATH "@loader_path")
+endif()
 
 endif()

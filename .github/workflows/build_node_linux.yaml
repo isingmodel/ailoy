@@ -10,14 +10,23 @@ jobs:
     container:
       image: quay.io/pypa/manylinux_2_28_x86_64
 
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Node.js (18.x) and npm
+      - name: Install Node.js ${{ matrix.node }}
         run: |
-          curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-          yum install -y nodejs
+          curl -fsSL https://nodejs.org/dist/v${{ matrix.node }}.0.0/node-v${{ matrix.node }}.0.0-linux-x64.tar.xz -o node.tar.xz
+          tar -xf node.tar.xz
+          echo "$PWD/node-v${{ matrix.node }}.0.0-linux-x64/bin" >> $GITHUB_PATH
+
+      - name: Install Vulkan SDK
+        run: |
+          yum install -y vulkan-devel spirv-headers-devel spirv-tools-devel spirv-tools-libs
 
       - name: Install OpenSSL 3.0.16
         run: |
@@ -45,26 +54,20 @@ jobs:
         env:
           MAKEFLAGS: -j$(nproc)
 
-      - name: Install Vulkan SDK 1.4.313.0
-        run: |
-          curl -LO https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkan-sdk-1.4.313.0.tar.xz
-          mkdir -p /opt/vulkan-sdk
-          tar -xJf vulkan-sdk-1.4.313.0.tar.xz --strip-components=2 -C /opt/vulkan-sdk
-
       - name: Create package
         run: |
           npm install
-          PACKAGE_NAME=$(npm pack | tail -n 1)
-          echo "PACKAGE_NAME: $PACKAGE_NAME"
+          npm pack
+          PACKAGE_NAME=$(ls -1t ailoy-*.tgz | head -n 1)
+          echo "PACKAGE_NAME=$PACKAGE_NAME"
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
         working-directory: ${{ github.workspace }}/bindings/js-node
         env:
           OPENSSL_ROOT_DIR: /opt/openssl
-          VULKAN_SDK: /opt/vulkan-sdk
           CMAKE_PREFIX_PATH: /opt/openblas
 
       - name: Upload npm package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PACKAGE_NAME }}
+          name: ${{ env.PACKAGE_NAME }}.${{ matrix.node }}
           path: ${{ github.workspace }}/bindings/js-node/${{ env.PACKAGE_NAME }}

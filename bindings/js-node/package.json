@@ -17,12 +17,12 @@
         "ailoy": "./dist/cli.cjs"
     },
     "scripts": {
-        "build:cpp": "node build-cmakejs.js",
+        "build:cpp": "node build.js",
         "build:ts": "rollup -c --bundleConfigAsCjs",
         "build": "npm run build:cpp && npm run build:ts",
         "clean": "rm -rf dist/",
         "test": "ts-mocha",
-        "prepack": "node build-prebuild.js && npm run build:ts && clean-package",
+        "prepack": "npm run build && node prepack.js && clean-package",
         "postpack": "clean-package restore"
     },
     "devDependencies": {
@@ -70,21 +70,21 @@
             "scripts",
             "devDependencies",
             "optionalDependencies",
-            "binary",
             "clean-package"
         ],
         "replace": {
             "scripts": {
-                "install": "prebuild-install || cmake-js rebuild"
+                "install": "prebuild-install && node dist/postinstall.js"
             }
         }
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.11.2",
+        "jmespath": "^0.16.0",
+        "prebuild-install": "^7.1.3",
         "boxen": "^8.0.1",
         "chalk": "^5.4.1",
         "cli-table3": "^0.6.5",
-        "commander": "^14.0.0",
-        "jmespath": "^0.16.0"
+        "commander": "^14.0.0"
     }
 }

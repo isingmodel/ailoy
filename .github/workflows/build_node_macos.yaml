@@ -7,13 +7,18 @@ jobs:
   build-macos:
     runs-on: macos-14
 
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node }}
 
       - name: Install Homebrew dependencies
         run: |
@@ -22,8 +27,9 @@ jobs:
       - name: Create package
         run: | 
           npm install
-          PACKAGE_NAME=$(npm pack | tail -n 1)
-          echo $PACKAGE_NAME
+          npm pack
+          PACKAGE_NAME=$(ls -1t ailoy-*.tgz | head -n 1)
+          echo "PACKAGE_NAME=$PACKAGE_NAME"
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
         working-directory: ${{ github.workspace }}/bindings/js-node
         env:
@@ -32,5 +38,5 @@ jobs:
       - name: Upload npm package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PACKAGE_NAME }}
+          name: ${{ env.PACKAGE_NAME }}.${{ matrix.node }}
           path: ${{ github.workspace }}/bindings/js-node/${{ env.PACKAGE_NAME }}
