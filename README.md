@@ -5,73 +5,108 @@ Ailoy is a lightweight library for building AI applications — such as **agent 
 > [!WARNING]
 > This library is in an early stage of development. APIs may change without notice.
 
-## Supports
+> [!TIP]
+> We have a [Discord channel](https://discord.gg/CeCH4Ax4)! If you get stuck or have any questions, feel free to join and ask.
 
-Ailoy supports the following operating systems:
-- Windows (x86, with Vulkan)
-- macOS (Apple Silicon, with Metal)
-- Linux (x86, with Vulkan)
+
+## Features
+
+- Run AI models either on-device or via cloud APIs
+- Built-in vector store support (via `Faiss` or `ChromaDB`)
+- Tool calling capabilities (including `MCP` integration)
+- Support for reasoning-based workflows
+- Multi-turn conversation and system message customization
+
+For more details, please refer to the documentation.
 
 Currently, the following AI models are supported:
-- Qwen/Qwen3-0.6B (on-device)
-- Qwen/Qwen3-1.7B (on-device)
-- Qwen/Qwen3-4B (on-device)
-- Qwen/Qwen3-8B (on-device)
-- gpt-4o (API key needed)
+- Language Models
+  - Qwen/Qwen3-0.6B (on-device)
+  - Qwen/Qwen3-1.7B (on-device)
+  - Qwen/Qwen3-4B (on-device)
+  - Qwen/Qwen3-8B (on-device)
+  - gpt-4o (API; key needed)
+- Embedding Models
+  - BAAI/bge-m3 (on-device)
+
+You can check out examples for tool usage and retrieval-augmented generation (RAG).
+
+## Requirements
+
+Ailoy supports the following operating systems:
+- Windows (x86_64, with Vulkan)
+- macOS (Apple Silicon, with Metal)
+- Linux (x86_64, with Vulkan)
+
+To use Ailoy with on-device inference, a compatible device is required.
+However, if your system doesn't meet the hardware requirements, you can still run Ailoy using external APIs such as OpenAI.
+
+AI models typically consume a significant amount of memory.
+The exact usage depends on the model size, but we recommend at least **8GB of GPU memory**.
+Running the Qwen 8B model requires at least **12GB of GPU memory**.
+On macOS, this refers to unified memory, as Apple Silicon uses a shared memory architecture.
+
+### For running on-device AI
+
+**Windows**
+- CPU: Intel Skylake or newer (and compatible AMD), x86_64 is required
+- GPU: At least 8GB of VRAM and support for Vulkan 1.3
+- OS: Windows 11 or Windows Server 2022 (earlier versions may work but are not officially tested)
+- NVIDIA driver that supports Vulkan 1.3 or higher
+
+**macOS**
+- Device: Apple Silicon with Metal support
+- Memory: At least 8GB of unified memory
+- OS: macOS 14 or newer
+
+**Linux**
+- CPU: Intel Skylake or newer (and compatible AMD), x86_64 is required
+- GPU: At least 8GB of VRAM and support for Vulkan 1.3
+- OS: Debian 10 / Ubuntu 21.04 or newer (this means, os with glibc 2.28 or higher)
+- NVIDIA driver that supports Vulkan 1.3 or higher
 
 ## Getting Started
 
 ### Node
 
+```sh
+npm install ailoy-node
+```
+
 ```typescript
 import {
   startRuntime,
-  createAgent,
-} from "ailoy-js-node";
+  defineAgent,
+} from "ailoy-node";
 
-const rt = await startRuntime();
-const agent = await createAgent(rt, {model: {name: "Qwen/Qwen3-0.6B"}});
-for await (const resp of agent.query("When is your cut-off date?")) {
-  agent.print(resp);
-}
-await agent.delete();
-await rt.stop();
+(async () => {
+  const rt = await startRuntime();
+  const agent = await defineAgent(rt, {model: {name: "Qwen/Qwen3-0.6B"}});
+  for await (const resp of agent.query("Hello world!")) {
+    agent.print(resp);
+  }
+  await agent.delete();
+  await rt.stop();
+})();
 ```
 
-For more details, refer to `bindings/js-node/README.md`.
-
 ### Python
+
+```sh
+pip install ailoy
+```
 
 ```python
 from ailoy import Runtime, Agent
 
 rt = Runtime()
-agent = Agent(rt, model_name="Qwen/Qwen3-8B")
-for resp in agent.query("When is your cut-off date?"):
-    resp.print()
-agent.delete()
+with Agent(rt, model_name="Qwen/Qwen3-8B") as agent:
+    for resp in agent.query("Hello world!"):
+        resp.print()
 rt.stop()
 ```
 
-For more details, refer to `bindings/python/README.md`.
-
 ## Build from source
-
-### Prerequisites
-
-- C/C++ compiler
-  (recommended versions are below)
-  - GCC >= 13
-  - LLVM Clang >= 17
-  - Apple Clang >= 15
-  - MSVC >= 19.29
-- CMake >= 3.24.0
-- Git
-- OpenSSL (libssl-dev)
-- Rust & Cargo >= 1.82.0 (optional, required for mlc-llm)
-- OpenMP (libomp-dev) (optional, used by Faiss)
-- BLAS (libblas-dev) (optional, used by Faiss)
-- LAPACK (liblapack-dev) (optional, used by Faiss)
 
 ### Node.js Build
 
@@ -86,7 +121,7 @@ For more details, refer to `bindings/js-node/README.md`.
 
 ```bash
 cd bindings/python
-pip wheel --no-deps -w dist .
+pip install -e .
 ```
 
 For more details, refer to `bindings/python/README.md`.
