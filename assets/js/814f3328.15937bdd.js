@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkailoy_docs=self.webpackChunkailoy_docs||[]).push([[472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Introducing Ailoy","permalink":"/ailoy/blog/introducing-ailoy","unlisted":false,"date":"2025-05-25T00:00:00.000Z"}]}')}}]);
