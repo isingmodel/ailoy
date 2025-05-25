@@ -15,7 +15,7 @@ const config: Config = {
   url: "https://ailoy.co",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: "/",
+  baseUrl: "/ailoy",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
