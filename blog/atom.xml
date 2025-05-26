@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://brekkylab.github.io/ailoy/blog</id>
     <title>Ailoy Blog</title>
-    <updated>2025-05-23T00:00:00.000Z</updated>
+    <updated>2025-05-25T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://brekkylab.github.io/ailoy/blog"/>
     <subtitle>Ailoy Blog</subtitle>
@@ -11,7 +11,7 @@
         <title type="html"><![CDATA[Introducing Ailoy]]></title>
         <id>https://brekkylab.github.io/ailoy/blog/introducing-ailoy</id>
         <link href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy"/>
-        <updated>2025-05-23T00:00:00.000Z</updated>
+        <updated>2025-05-25T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[We’re excited to announce the launch of Ailoy, a drop-in library for LLM & agent development.]]></summary>
         <content type="html"><![CDATA[<p>We’re excited to announce the launch of <strong>Ailoy</strong>, a drop-in library for LLM &amp; agent development.</p>
 <p>Large Language Models (LLMs) and AI agents have recently emerged as a major trend in the software industry, drawing significant attention.
