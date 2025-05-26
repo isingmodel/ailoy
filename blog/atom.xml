@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://ailoy.co/ailoy/blog</id>
+    <id>https://brekkylab.github.io/ailoy/blog</id>
     <title>Ailoy Blog</title>
-    <updated>2025-05-25T00:00:00.000Z</updated>
+    <updated>2025-05-23T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://ailoy.co/ailoy/blog"/>
+    <link rel="alternate" href="https://brekkylab.github.io/ailoy/blog"/>
     <subtitle>Ailoy Blog</subtitle>
-    <icon>https://ailoy.co/ailoy/img/favicon.ico</icon>
+    <icon>https://brekkylab.github.io/ailoy/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Introducing Ailoy]]></title>
-        <id>https://ailoy.co/ailoy/blog/introducing-ailoy</id>
-        <link href="https://ailoy.co/ailoy/blog/introducing-ailoy"/>
-        <updated>2025-05-25T00:00:00.000Z</updated>
+        <id>https://brekkylab.github.io/ailoy/blog/introducing-ailoy</id>
+        <link href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy"/>
+        <updated>2025-05-23T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[We’re excited to announce the launch of Ailoy, a drop-in library for LLM & agent development.]]></summary>
         <content type="html"><![CDATA[<p>We’re excited to announce the launch of <strong>Ailoy</strong>, a drop-in library for LLM &amp; agent development.</p>
 <p>Large Language Models (LLMs) and AI agents have recently emerged as a major trend in the software industry, drawing significant attention.
@@ -25,7 +25,7 @@ But to access high-end AI capabilities, cloud APIs still play an important role.
 Our goal is to keep the right balance between the two.
 <strong>Ailoy</strong> works seamlessly across cloud, on-device, and even hybrid environments, helping you build and deploy advanced AI functionality with minimal overhead.</p>
 <p>You don’t need heavy infrastructure. You don’t need a degree in AI. Just the right tools to get things done.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-what-is-ailoy">🚀 What is Ailoy?<a href="https://ailoy.co/ailoy/blog/introducing-ailoy#-what-is-ailoy" class="hash-link" aria-label="Direct link to 🚀 What is Ailoy?" title="Direct link to 🚀 What is Ailoy?">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-what-is-ailoy">🚀 What is Ailoy?<a href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy#-what-is-ailoy" class="hash-link" aria-label="Direct link to 🚀 What is Ailoy?" title="Direct link to 🚀 What is Ailoy?">​</a></h2>
 <p>Ailoy is a lightweight library that makes it easy to embed AI into your software.
 Whether you're building a chatbot, an intelligent agent, or enhancing an existing system with LLM capabilities, Ailoy gives you the tools to do it with minimal effort.</p>
 <p>It provides:</p>
@@ -36,7 +36,7 @@ Whether you're building a chatbot, an intelligent agent, or enhancing an existin
 </ul>
 <p>Think of it as your AI development toolkit.
 It's ideal for embedded assistants, workflow automation, or even building your own reasoning system from the ground up.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-why-ailoy">💡 Why Ailoy?<a href="https://ailoy.co/ailoy/blog/introducing-ailoy#-why-ailoy" class="hash-link" aria-label="Direct link to 💡 Why Ailoy?" title="Direct link to 💡 Why Ailoy?">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-why-ailoy">💡 Why Ailoy?<a href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy#-why-ailoy" class="hash-link" aria-label="Direct link to 💡 Why Ailoy?" title="Direct link to 💡 Why Ailoy?">​</a></h2>
 <p><strong>1. Easy to Use</strong></p>
 <p>No need to wrestle with complex orchestration frameworks or deep ML stack knowledge. With Ailoy, you can just import and go.
 Ailoy is designed to feel like any modern developer library.</p>
@@ -57,14 +57,14 @@ Many existing LLM frameworks require expertise in ML systems or infrastructure.
 Ailoy aims to break that barrier.
 Whether you’re writing a script, building a product, or shipping a SaaS, Ailoy lets you focus on your application logic.</p>
 <p>We’re currently in the early stages, but iterating rapidly to support the features and workflows real developers care about.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-what-you-can-build-with-ailoy">🔍 What You Can Build with Ailoy<a href="https://ailoy.co/ailoy/blog/introducing-ailoy#-what-you-can-build-with-ailoy" class="hash-link" aria-label="Direct link to 🔍 What You Can Build with Ailoy" title="Direct link to 🔍 What You Can Build with Ailoy">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-what-you-can-build-with-ailoy">🔍 What You Can Build with Ailoy<a href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy#-what-you-can-build-with-ailoy" class="hash-link" aria-label="Direct link to 🔍 What You Can Build with Ailoy" title="Direct link to 🔍 What You Can Build with Ailoy">​</a></h2>
 <ul>
 <li>A multi-turn chatbot powered by a local model and cloud</li>
 <li>A command-line assistant with custom tools</li>
 <li>A personalized agent with access to private files via RAG</li>
 <li>A desktop app that ships with an embedded LLM</li>
 </ul>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-current-limitations">⚠️ Current Limitations<a href="https://ailoy.co/ailoy/blog/introducing-ailoy#%EF%B8%8F-current-limitations" class="hash-link" aria-label="Direct link to ⚠️ Current Limitations" title="Direct link to ⚠️ Current Limitations">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="️-current-limitations">⚠️ Current Limitations<a href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy#%EF%B8%8F-current-limitations" class="hash-link" aria-label="Direct link to ⚠️ Current Limitations" title="Direct link to ⚠️ Current Limitations">​</a></h2>
 <p>While Ailoy strives for universality, there are a few constraints to keep in mind.</p>
 <p>LLMs are still resource-intensive.
 On-device execution requires a capable system, and performance can vary significantly across platforms.</p>
@@ -76,7 +76,7 @@ Inference speed and memory usage depend heavily on the model architecture and th
 <p>That said, we’re optimistic about the future.
 Many hardware vendors are now shipping computers with AI accelerators, and the landscape is quickly evolving.
 We’re committed to making Ailoy compatible with these emerging platforms and enabling smooth on-device AI experiences as the hardware ecosystem matures.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-whats-next">🌐 What’s Next<a href="https://ailoy.co/ailoy/blog/introducing-ailoy#-whats-next" class="hash-link" aria-label="Direct link to 🌐 What’s Next" title="Direct link to 🌐 What’s Next">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-whats-next">🌐 What’s Next<a href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy#-whats-next" class="hash-link" aria-label="Direct link to 🌐 What’s Next" title="Direct link to 🌐 What’s Next">​</a></h2>
 <p>We have a roadmap to make Ailoy even more accessible and powerful.</p>
 <p>Currently, we support Alibaba’s <code>Qwen3</code> and OpenAI’s <code>GPT-4o</code>, and we plan to expand support to a broader range of models, including multimodal ones.
 We're also working to enable speech recognition and text-to-speech (TTS) models, opening up more possibilities for voice-based AI interactions.
@@ -87,7 +87,7 @@ By building remote model execution capabilities over TCP, Ailoy will enable AI a
 This will make it possible to build distributed agent systems that can leverage multiple machines working together.</p>
 <p>Our long-term goal is to make local-first AI the default — where on-device and cloud-based models work together seamlessly.
 This hybrid approach empowers developers to build advanced AI applications while minimizing costs, protecting user privacy, and optimizing performance.</p>
-<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-join-us-on-the-journey">🤝 Join Us on the Journey<a href="https://ailoy.co/ailoy/blog/introducing-ailoy#-join-us-on-the-journey" class="hash-link" aria-label="Direct link to 🤝 Join Us on the Journey" title="Direct link to 🤝 Join Us on the Journey">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="-join-us-on-the-journey">🤝 Join Us on the Journey<a href="https://brekkylab.github.io/ailoy/blog/introducing-ailoy#-join-us-on-the-journey" class="hash-link" aria-label="Direct link to 🤝 Join Us on the Journey" title="Direct link to 🤝 Join Us on the Journey">​</a></h2>
 <p>We believe accessible AI infrastructure can unlock a whole new class of applications.
 Whether you're an indie developer, a startup team, or part of a large organization, Ailoy is here to help you:</p>
 <ul>
