@@ -1,12 +1,12 @@
 # Ailoy
 
 [![document](https://img.shields.io/badge/document-latest-2ea44f)](https://brekkylab.github.io/ailoy/)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ailoy-py)
-![PyPI - Python Version](https://img.shields.io/pypi/v/ailoy-py)
-![NPM Version](https://img.shields.io/npm/v/ailoy-node)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ailoy-py)](https://pypi.org/project/ailoy-py/)
+[![PyPI - Python Version](https://img.shields.io/pypi/v/ailoy-py)](https://pypi.org/project/ailoy-py/)
+[![NPM Version](https://img.shields.io/npm/v/ailoy-node)](https://www.npmjs.com/package/ailoy-node)
 
-![Discord](https://img.shields.io/discord/1376092616780812368)
-![X (formerly Twitter) URL](https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2Failoy_co)
+[![Discord](https://img.shields.io/discord/1376092616780812368)](https://discord.gg/CeCH4Ax4)
+[![X (formerly Twitter) URL](https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2Failoy_co)](https://x.com/ailoy_co)
 
 
 Ailoy is a lightweight library for building AI applications — such as **agent systems** or **RAG pipelines** — with ease. It is designed to enable AI features effortlessly, one can just import and use.
