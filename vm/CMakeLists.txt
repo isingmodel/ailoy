@@ -176,6 +176,12 @@ if(AILOY_WITH_TEST)
     target_link_libraries(test_tvm_language_model PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj httplib GTest::gtest)
     target_link_options(test_tvm_language_model PRIVATE -fsanitize=undefined -fsanitize=address)
 
+    add_executable(test_langmodel_v2 ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_langmodel_v2.cpp)
+    add_test(NAME TestLangModel COMMAND test_langmodel_v2)
+    target_include_directories(test_langmodel_v2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(test_langmodel_v2 PRIVATE ailoy_vm_obj ailoy_broker_obj ailoy_broker_client_obj ailoy_core_obj httplib GTest::gtest)
+    target_link_options(test_langmodel_v2 PRIVATE -fsanitize=undefined -fsanitize=address)
+
     add_executable(test_tvm_embedding_model ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tvm_embedding_model.cpp)
     add_test(NAME TestTVMEmbeddingModel COMMAND test_tvm_embedding_model)
     target_include_directories(test_tvm_embedding_model PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
