@@ -7,7 +7,7 @@ export type {
   AgentResponse,
   ToolAuthenticator,
   ToolDescription,
-  ToolDefinitionUniversal,
+  ToolDefinitionBuiltin,
   ToolDefinitionRESTAPI,
   ToolDefinition,
 } from "./agent";

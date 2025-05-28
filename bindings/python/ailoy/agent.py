@@ -225,7 +225,7 @@ AgentResponse = Union[
 
 ## Types and functions related to Tools
 
-ToolDefinition = Union["UniversalToolDefinition", "RESTAPIToolDefinition"]
+ToolDefinition = Union["BuiltinToolDefinition", "RESTAPIToolDefinition"]
 
 
 class ToolDescription(BaseModel):
@@ -248,13 +248,13 @@ class ToolParametersProperty(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class UniversalToolDefinition(BaseModel):
-    type: Literal["universal"]
+class BuiltinToolDefinition(BaseModel):
+    type: Literal["builtin"]
     description: ToolDescription
-    behavior: "UniversalToolBehavior"
+    behavior: "BuiltinToolBehavior"
 
 
-class UniversalToolBehavior(BaseModel):
+class BuiltinToolBehavior(BaseModel):
     output_path: Optional[str] = Field(default=None, alias="outputPath")
     model_config = ConfigDict(populate_by_name=True)
 
@@ -546,16 +546,16 @@ class Agent:
         """
         self.add_tool(Tool(desc=ToolDescription.model_validate(desc), call_fn=f))
 
-    def add_universal_tool(self, tool_def: UniversalToolDefinition) -> bool:
+    def add_builtin_tool(self, tool_def: BuiltinToolDefinition) -> bool:
         """
-        Adds a universal tool.
+        Adds a built-in tool.
 
-        :param tool_def: The universal tool definition.
+        :param tool_def: The built-in tool definition.
         :returns: True if the tool was successfully added.
-        :raises ValueError: If the tool type is not "universal" or required inputs are missing.
+        :raises ValueError: If the tool type is not "builtin" or required inputs are missing.
         """
-        if tool_def.type != "universal":
-            raise ValueError('Tool type is not "universal"')
+        if tool_def.type != "builtin":
+            raise ValueError('Tool type is not "builtin"')
 
         def call(**inputs: dict[str, Any]) -> Any:
             required = tool_def.description.parameters.required or []
@@ -662,8 +662,8 @@ class Agent:
         data: dict[str, dict[str, Any]] = json.loads(preset_json.read_text())
         for tool_name, tool_def in data.items():
             tool_type = tool_def.get("type", None)
-            if tool_type == "universal":
-                self.add_universal_tool(UniversalToolDefinition.model_validate(tool_def))
+            if tool_type == "builtin":
+                self.add_builtin_tool(BuiltinToolDefinition.model_validate(tool_def))
             elif tool_type == "restapi":
                 self.add_restapi_tool(RESTAPIToolDefinition.model_validate(tool_def), authenticator=authenticator)
             else:
