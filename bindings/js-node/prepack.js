@@ -28,8 +28,8 @@ const tarballPath = path.resolve(__dirname, "prebuilds", tarballName);
 function runCommand(command, args, opts = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      shell: opts.shell || true,
-      cwd: opts.cwd || process.cwd(),
+      shell: opts.shell ?? true,
+      cwd: opts.cwd ?? process.cwd(),
       env: process.env,
     });
 
@@ -53,7 +53,8 @@ function runCommand(command, args, opts = {}) {
 
     const allFiles = fs
       .readdirSync(srcDir)
-      .filter((f) => f === binaryName || libPattern.test(f));
+      .filter((f) => f === binaryName || libPattern.test(f))
+      .filter((f) => !f.includes("vulkan")); // Do not vendor libvulkan
 
     // copy files
     for (const file of allFiles) {
@@ -114,20 +115,12 @@ function runCommand(command, args, opts = {}) {
         .filter(Boolean);
       console.log(entries);
 
-      const patchedLibs = [];
-
-      for (const lib of entries) {
-        const localPath = path.join(buildDir, lib);
-        if (fs.existsSync(localPath)) {
-          console.log(`→ patch: replace ${lib} → \$ORIGIN/${lib}`);
-          await runCommand(
-            "patchelf",
-            ["--replace-needed", lib, `$ORIGIN/${lib}`, nodeBinary],
-            { shell: false }
-          );
-          patchedLibs.push(lib);
-        }
-      }
+      // Set RPATH as $ORIGIN
+      await runCommand(
+        "patchelf",
+        ["--force-rpath", "--set-rpath", "$ORIGIN", nodeBinary],
+        { shell: false }
+      );
     }
 
     const distNode = path.resolve(__dirname, "dist", binaryName);
