@@ -1,5 +1,14 @@
 # Ailoy
 
+[![document](https://img.shields.io/badge/document-latest-2ea44f)](https://brekkylab.github.io/ailoy/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ailoy-py)
+![PyPI - Python Version](https://img.shields.io/pypi/v/ailoy-py)
+![NPM Version](https://img.shields.io/npm/v/ailoy-node)
+
+![Discord](https://img.shields.io/discord/1376092616780812368)
+![X (formerly Twitter) URL](https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2Failoy_co)
+
+
 Ailoy is a lightweight library for building AI applications — such as **agent systems** or **RAG pipelines** — with ease. It is designed to enable AI features effortlessly, one can just import and use.
 
 > [!WARNING]
@@ -66,11 +75,6 @@ On macOS, this refers to unified memory, as Apple Silicon uses a shared memory a
 - NVIDIA driver that supports Vulkan 1.3 or higher
 
 ## Getting Started
-
-> [!WARNING]
-> We are currently undergoing review for package managers (PyPI / npm) for upload.
-> In the meantime, if you'd like to try it out, please use the wheel files provided.
-> [https://github.com/brekkylab/ailoy/releases/tag/v0.0.1](https://github.com/brekkylab/ailoy/releases/tag/v0.0.1)
 
 ### Node
 
