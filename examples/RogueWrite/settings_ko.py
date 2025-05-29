@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 MIN_LEN_UNFOLDING = 100
 MAX_LEN_UNFOLDING = 300
 
@@ -7,21 +8,21 @@ ANNOUNCEMENT_START = "[bold][italic][red]RogueWrite[/red]의 세계 속으로 �
 ANNOUNCEMENT_INPUT = "[bold][[cyan][italic]캐릭터[/italic][/cyan]를 설정하세요.][/bold]"
 PROMPT_INPUT_NAME = "이름: "
 PROMPT_INPUT_ABILITY = "능력: "
-TITLE_CHECK_INPUT = (
-    "[bold]당신의 [cyan][italic]캐릭터[/italic][/cyan] - [italic]{name}[/italic][/bold]"
-)
+TITLE_CHECK_INPUT = "[bold]당신의 [cyan][italic]캐릭터[/italic][/cyan] - [italic]{name}[/italic][/bold]"
 PROMPT_CHECK_INPUT = "> 이대로 시작하시겠습니까? (Y/n)"
-ANNOUNCEMENT_LONG_ABILITY = (
-    "능력은 {MAX_LEN_ABILITY}자 이내여야합니다.\n입력된 값: ({len_ability}) {ability}"
+ANNOUNCEMENT_LONG_ABILITY = "능력은 {MAX_LEN_ABILITY}자 이내여야합니다.\n입력된 값: ({len_ability}) {ability}"
+ANNOUNCEMENT_BOSS = (
+    "\n[navy_blue][bold][italic]<레벨 {level_index}>[/italic][/bold][/navy_blue] 당신이 상대할 보스는... "
 )
-ANNOUNCEMENT_BOSS = "\n[navy_blue][bold][italic]<레벨 {level_index}>[/italic][/bold][/navy_blue] 당신이 상대할 보스는... "
 PROMPT_CHECK_BATTLE = "> 전투에 돌입합니다! (Press Enter)"
 ANNOUNCEMENT_IN_BATTLE = "치열한 전투 진행 중..."
 TITLE_BATTLE_RESULT = "[bold][italic]{level.boss.name}[/italic][/bold]와의 [bold][magenta]전투 결과[/magenta][/bold]"
 ANNOUNCEMENT_CLEAR_LEVEL = "[bold][italic]{character.name}[/italic][/bold]이(가) [bold][italic]{level.boss.name}[/italic][/bold]을(를) 이겼습니다!\n"
 PROMPT_CLEAR_LEVEL = "> 다음 레벨로 진행... (Press Enter)"
 ANNOUNCEMENT_CLEAR = "[bold][italic]{character.name}[/italic][/bold]이(가) [bold]모든[/bold] 레벨을 클리어했습니다. [italic]이제 아무 것도 그를 막을 수 없습니다![/italic]\n"
-ANNOUNCEMENT_FAIL = "[bold][italic]{character.name}[/italic][/bold]이(가) 고군분투 하였으나, 모든 레벨을 클리어하지 못했습니다...\n"
+ANNOUNCEMENT_FAIL = (
+    "[bold][italic]{character.name}[/italic][/bold]이(가) 고군분투 하였으나, 모든 레벨을 클리어하지 못했습니다...\n"
+)
 TITLE_STAT = "[bold][italic]{character.name}[/italic][/bold]의 [bold][green]서사시[/green][/bold]"
 CONTENT_STAT = (
     "[bold][italic]{character.name}[/italic][/bold]은(는) {max_level}명의 위대한 보스 중 {level_index}을(를) 처치하여, "
