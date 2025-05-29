@@ -6,6 +6,13 @@ You create your own character to defeat all the bosses.
 
 Just try to play!
 
+## How to play
+
+1. (optional) Set your language. (refer to [Language settings](#language-settings))
+2. Run `play.py` (refer to [Run](#run) section.)
+3. Describe your own character by text.
+4. By the level, a boss will appear, you can challenge it and check the results. (Just press enter to proceed!)
+
 ## Run
 
 ### with `uv`
