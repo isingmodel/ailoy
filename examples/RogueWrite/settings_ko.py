@@ -16,7 +16,9 @@ ANNOUNCEMENT_BOSS = (
 )
 PROMPT_CHECK_BATTLE = "> 전투에 돌입합니다! (Press Enter)"
 ANNOUNCEMENT_IN_BATTLE = "치열한 전투 진행 중..."
-TITLE_BATTLE_RESULT = "[bold][italic]{level.boss.name}[/italic][/bold]와의 [bold][magenta]전투 결과[/magenta][/bold]"
+TITLE_BATTLE_RESULT = (
+    "[bold][italic]{level.boss.name}[/italic][/bold]에 도전한 [bold][magenta]전투 결과[/magenta][/bold]"
+)
 ANNOUNCEMENT_CLEAR_LEVEL = "[bold][italic]{character.name}[/italic][/bold]이(가) [bold][italic]{level.boss.name}[/italic][/bold]을(를) 이겼습니다!\n"
 PROMPT_CLEAR_LEVEL = "> 다음 레벨로 진행... (Press Enter)"
 ANNOUNCEMENT_CLEAR = "[bold][italic]{character.name}[/italic][/bold]이(가) [bold]모든[/bold] 레벨을 클리어했습니다. [italic]이제 아무 것도 그를 막을 수 없습니다![/italic]\n"
@@ -41,7 +43,7 @@ SYSTEM_MESSAGE = f"""당신은 [RogueWrite]의 심판이자 내래이터로서, 
 LEVEL_CONTENTS = [
     {
         "boss_name": "리바이 아커만",
-        "boss_ability": "인류 최강의 병사 리바이는 입체기동와 초경질스틸칼로 모든 것을 썰어버린다. 그의 전투력은 병단 전체와도 맞먹으며, 어떤 거인도 이길 수 있을만한 세계관 최강자이다.",
+        "boss_ability": "인류 최강의 병사 리바이는 입체기동장치와 초경질스틸칼로 모든 것을 썰어버린다. 그의 전투력은 병단 전체와도 맞먹으며, 어떤 거인도 이길 수 있을만한 세계관 최강자이다.",
         "enter_message": "귀찮게하는군.",
         "clear_message": "신죠오사사게요...",
         "fail_message": "칫, 시끄럽군.",
