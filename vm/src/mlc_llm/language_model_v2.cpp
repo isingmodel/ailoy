@@ -26,31 +26,44 @@ public:
         IntTuple{16}, // page size
         IntTuple{engine->get_metadata()["sliding_window_size"].operator int() !=
                  -1});
+    fkv_state_add_sequence_ =
+        engine->get_function("vm.builtin.kv_state_add_sequence");
+    fkv_state_remove_sequence_ =
+        engine->get_function("vm.builtin.kv_state_remove_sequence");
+    fkv_state_fork_sequence_ =
+        engine->get_function("vm.builtin.kv_state_fork_sequence");
     fkv_state_begin_forward_ =
-        engine->get_vm_function("vm.builtin.kv_state_begin_forward");
+        engine->get_function("vm.builtin.kv_state_begin_forward");
     fkv_state_end_forward_ =
-        engine->get_vm_function("vm.builtin.kv_state_end_forward");
+        engine->get_function("vm.builtin.kv_state_end_forward");
   }
 
-  void begin_forward(const std::vector<int64_t> &token_ids) {
-    fkv_state_begin_forward_(kv_cache_, IntTuple{token_ids},
-                             IntTuple{static_cast<int>(token_ids.size())});
+  ObjectRef get() { return kv_cache_; }
+
+  void add_sequence(size_t sequence_id) {
+    fkv_state_add_sequence_(kv_cache_, sequence_id);
   }
 
-  void begin_forward(const std::vector<int> &token_ids) {
-    std::vector<int64_t> token_ids_i64;
-    token_ids_i64.reserve(token_ids.size());
-    for (size_t i = 0; i < token_ids.size(); i++)
-      token_ids_i64.push_back(token_ids[i]);
-    begin_forward(token_ids_i64);
+  void remove_sequence(size_t sequence_id) {
+    fkv_state_remove_sequence_(kv_cache_, sequence_id);
   }
 
-  void step_forward() {}
+  void begin_forward(size_t sequence_id, size_t sequence_length) {
+    fkv_state_begin_forward_(kv_cache_,
+                             IntTuple{static_cast<int32_t>(sequence_id)},
+                             IntTuple{static_cast<int32_t>(sequence_length)});
+  }
 
   void end_forward() { fkv_state_end_forward_(kv_cache_); }
 
 private:
   ObjectRef kv_cache_;
+
+  PackedFunc fkv_state_add_sequence_;
+
+  PackedFunc fkv_state_fork_sequence_;
+
+  PackedFunc fkv_state_remove_sequence_;
 
   PackedFunc fkv_state_begin_forward_;
 
@@ -69,14 +82,7 @@ void temp() {
       create<tokenizer_t>(engine->get_model_path() / "tokenizer.json");
 
   // Create kv-cache
-  auto fn = engine->get_vm_function("create_tir_paged_kv_cache");
-  ObjectRef kv_cache = fn(
-      IntTuple{1}, // max_num_sequence
-      IntTuple{engine->get_metadata()["context_window_size"].operator int()},
-      IntTuple{engine->get_metadata()["prefill_chunk_size"].operator int()},
-      IntTuple{16}, // page size
-      IntTuple{engine->get_metadata()["sliding_window_size"].operator int() !=
-               -1});
+  kv_cache_t kv_cache{engine};
 
   // Example input
   nlohmann::json messages = nlohmann::json::array();
@@ -106,8 +112,29 @@ void temp() {
       engine->get_vm_function("embed")(token_ids, engine->get_params());
   NDArray embed_reshaped = embed.CreateView(
       ShapeTuple{1, embed->shape[0], embed->shape[1]}, embed.DataType());
-
   std::cout << embed.Shape() << std::endl;
+
+  kv_cache.add_sequence(0);
+
+  kv_cache.begin_forward(0, tokens_length);
+  engine->get_vm_function("prefill")(embed_reshaped, kv_cache.get(),
+                                     engine->get_params());
+  kv_cache.end_forward();
+
+  // {
+  //   tvm::IntTuple sequence_ids_tuple{1L};
+  //   tvm::IntTuple input_length_shape{1};
+  //   kv_cache.begin_forward(0, tokens_length);
+  //   tvm::runtime::NDArray embed = fembed_(inputs, engine->get_params());
+  //   tvm::runtime::ObjectRef return_value;
+  //   tvm::runtime::NDArray embed_reshaped = embed.CreateView(
+  //       tvm::ShapeTuple{1, 1, embed->shape[1]}, embed.DataType());
+  //   return_value =
+  //       fdecode_(embed_reshaped, kv_cache.get(), engine->get_params());
+  //   kv_cache.end_forward();
+  // }
+
+  kv_cache.remove_sequence(0);
 }
 
 } // namespace ailoy

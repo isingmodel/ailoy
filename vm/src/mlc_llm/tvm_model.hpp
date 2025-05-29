@@ -58,6 +58,10 @@ public:
 
   const nlohmann::json &get_metadata() const { return metadata_; }
 
+  tvm::runtime::PackedFunc get_function(const std::string_view fname) {
+    return *tvm::runtime::Registry::Get(std::string(fname));
+  }
+
   tvm::runtime::PackedFunc get_vm_function(const std::string_view fname) {
     return get_module().GetFunction(std::string(fname));
   }
