@@ -4,10 +4,16 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    {name = "Brekkylab Inc.", email = "contact@brekkylab.com"}
+]
 dependencies = [
     "ailoy-py~=0.0.1",
     "rich>=14.0.0",
 ]
+
+[tool.setuptools]
+py-modules = []
 
 [dependency-groups]
 dev = [
