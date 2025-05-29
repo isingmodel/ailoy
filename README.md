@@ -109,7 +109,7 @@ pip install ailoy-py
 from ailoy import Runtime, Agent
 
 rt = Runtime()
-with Agent(rt, model_name="Qwen/Qwen3-8B") as agent:
+with Agent(rt, model_name="Qwen/Qwen3-0.6B") as agent:
     for resp in agent.query("Hello world!"):
         resp.print()
 rt.stop()
