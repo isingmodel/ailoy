@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from ailoy import Agent, Runtime
 from rich.console import Console
 from rich.panel import Panel

@@ -1,31 +1,34 @@
+# ruff: noqa: E501
 MIN_LEN_UNFOLDING = 300
 MAX_LEN_UNFOLDING = 500
 
 MAX_LEN_ABILITY = 200
 
 
-ANNOUNCEMENT_START = (
-    "[bold][italic]Getting into the world of [red]RogueWrite[/red]...[/italic][/bold]\n"
-)
-ANNOUNCEMENT_INPUT = (
-    "[bold][Describe your [cyan][italic]character[/italic][/cyan]][/bold]"
-)
+ANNOUNCEMENT_START = "[bold][italic]Getting into the world of [red]RogueWrite[/red]...[/italic][/bold]\n"
+ANNOUNCEMENT_INPUT = "[bold][Describe your [cyan][italic]character[/italic][/cyan]][/bold]"
 PROMPT_INPUT_NAME = "   name: "
 PROMPT_INPUT_ABILITY = "ability: "
 TITLE_CHECK_INPUT = "[bold]Your [cyan][italic]character[/italic][/cyan] - [italic]{name}[/italic][/bold]"
 PROMPT_CHECK_INPUT = "> Would you like to start with this? (Y/n)"
-ANNOUNCEMENT_LONG_ABILITY = "Ability must be shorter than {MAX_LEN_ABILITY} characters.\nYou entered: ({len_ability}) {ability}"
-ANNOUNCEMENT_BOSS = "\n[navy_blue][bold][italic]<level {level_index}>[/italic][/bold][/navy_blue] You will challenge to this boss... "
+ANNOUNCEMENT_LONG_ABILITY = (
+    "Ability must be shorter than {MAX_LEN_ABILITY} characters.\nYou entered: ({len_ability}) {ability}"
+)
+ANNOUNCEMENT_BOSS = (
+    "\n[navy_blue][bold][italic]<level {level_index}>[/italic][/bold][/navy_blue] You will challenge to this boss... "
+)
 PROMPT_CHECK_BATTLE = "> Rushing into the battle! (Press Enter)"
 ANNOUNCEMENT_IN_BATTLE = "In the midst of a fierce battle..."
-TITLE_BATTLE_RESULT = "[bold][magenta]Unfolding of Battle[/magenta][/bold] with [bold][italic]{level.boss.name}[/italic][/bold]"
-ANNOUNCEMENT_CLEAR_LEVEL = "[bold][italic]{character.name}[/italic][/bold] defeated [bold][italic]{level.boss.name}[/italic][/bold]!\n"
+TITLE_BATTLE_RESULT = (
+    "[bold][magenta]Unfolding of Battle[/magenta][/bold] with [bold][italic]{level.boss.name}[/italic][/bold]"
+)
+ANNOUNCEMENT_CLEAR_LEVEL = (
+    "[bold][italic]{character.name}[/italic][/bold] defeated [bold][italic]{level.boss.name}[/italic][/bold]!\n"
+)
 PROMPT_CLEAR_LEVEL = "> Advancing to the next level... (Press Enter)"
 ANNOUNCEMENT_CLEAR = "[bold][italic]{character.name}[/italic][/bold] has cleared [bold]all[/bold] levels. [italic]Now nothing can stand in its way![/italic]\n"
 ANNOUNCEMENT_FAIL = "[bold][italic]{character.name}[/italic][/bold] struggled but failed to clear all the levels...\n"
-TITLE_STAT = (
-    "[bold][green]Epic[/green][/bold] of [bold][italic]{character.name}[/italic][/bold]"
-)
+TITLE_STAT = "[bold][green]Epic[/green][/bold] of [bold][italic]{character.name}[/italic][/bold]"
 CONTENT_STAT = (
     "[bold][italic]{character.name}[/italic][/bold] has vanquished {level_index} of the {max_level} great bosses, "
     "leaving a mark on the world through sheer might.\n"
