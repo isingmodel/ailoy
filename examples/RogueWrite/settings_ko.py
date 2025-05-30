@@ -27,7 +27,7 @@ ANNOUNCEMENT_FAIL = (
 )
 TITLE_STAT = "[bold][italic]{character.name}[/italic][/bold]의 [bold][green]서사시[/green][/bold]"
 CONTENT_STAT = (
-    "[bold][italic]{character.name}[/italic][/bold]은(는) {max_level}명의 위대한 보스 중 {level_index}을(를) 처치하여, "
+    "[bold][italic]{character.name}[/italic][/bold]은(는) {max_level} 명의 위대한 보스 중 {level_index} 명을 처치하여, "
     "그 강함을 온 세상에 떨쳤습니다.\n"
     "그 이름 [bold][italic]{character.name}[/italic][/bold]은(는) 영원히 기억될 것입니다..."
 )
