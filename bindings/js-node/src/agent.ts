@@ -239,6 +239,7 @@ export class Agent {
   private tools: Tool[];
 
   private messages: Message[];
+  private systemMessage?: string;
 
   constructor(
     /** The runtime environment associated with the agent */
@@ -258,9 +259,9 @@ export class Agent {
     this.messages = [];
 
     // Use system message provided from arguments first, otherwise use default system message for the model.
-    this.messages = [];
-    if (systemMessage !== undefined)
-      this.messages.push({ role: "system", content: systemMessage });
+    this.systemMessage = systemMessage;
+    // if (systemMessage !== undefined)
+    //   this.messages.push({ role: "system", content: systemMessage });
 
     // Initialize tools
     this.tools = [];
@@ -285,11 +286,12 @@ export class Agent {
     if (!attrs.model) attrs.model = modelDesc.modelId;
 
     // Set default system message
-    if (this.messages.length == 0 && modelDesc.defaultSystemMessage)
-      this.messages.push({
-        role: "system",
-        content: modelDesc.defaultSystemMessage,
-      });
+    if (this.systemMessage === undefined)
+      this.systemMessage = modelDesc.defaultSystemMessage || "";
+    this.messages.push({
+      role: "system",
+      content: this.systemMessage,
+    });
 
     // Call runtime to define componenets
     const result = await this.runtime.define(
@@ -665,6 +667,12 @@ export class Agent {
         }
       }
     }
+  }
+
+  clearHistory() {
+    if (this.messages.length > 0 && this.messages[0].role === "system")
+      this.messages = [this.messages[0]];
+    else this.messages = [];
   }
 
   private _printResponseText(resp: AgentResponseText) {

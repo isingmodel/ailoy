@@ -359,8 +359,7 @@ class Agent:
 
         # Initialize messages
         self._messages: list[Message] = []
-        if system_message:
-            self._messages.append(SystemMessage(role="system", content=system_message))
+        self.system_message: str = system_message
 
         # Initialize tools
         self._tools: list[Tool] = []
@@ -398,8 +397,9 @@ class Agent:
             attrs["model"] = model_desc.model_id
 
         # Set default system message
-        if len(self._messages) == 0 and model_desc.default_system_message:
-            self._messages.append(SystemMessage(role="system", content=model_desc.default_system_message))
+        if self.system_message is None:
+            self.system_message = model_desc.default_system_message if model_desc.default_system_message else ""
+        self._messages.append(SystemMessage(role="system", content=self.system_message))
 
         # Add API key
         if api_key:
@@ -522,6 +522,10 @@ class Agent:
 
                     # finish this Generator
                     return
+
+    def clear_history(self):
+        self._messages.clear()
+        self._messages.append(SystemMessage(role="system", content=self.system_message))
 
     def print(self, resp: AgentResponse):
         resp.print()
