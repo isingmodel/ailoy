@@ -54,8 +54,8 @@ LEVEL_CONTENTS = [
         "boss_name": "Domino",
         "boss_ability": "Domino is unbelievably lucky. Every situation turns in their favor purely by chance. Thanks to this luck, Domino always survives, and the opponent inevitably loses as a result of sheer misfortune.",
         "enter_message": "I'm lucky.",
-        "clear_message": "Strangely, I was lucky today...",
-        "fail_message": "It's a bad luck.",
+        "clear_message": "I was WEIRDLY lucky today...",
+        "fail_message": "It's not even the luckiest day.",
     },
     {
         "boss_name": "Hacker",
