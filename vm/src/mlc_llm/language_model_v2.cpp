@@ -294,7 +294,6 @@ int32_t tvm_language_model_t::prefill(const std::vector<int32_t> &tokens) {
       break;
     ++lcp_index;
   }
-
   // Rewind the head of kv-cache to the LCP
   if (lcp_index < history_.size()) {
     kv_cache_->popn(history_.size() - lcp_index);
@@ -898,10 +897,24 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
         return outputs;
       });
 
+  //
+  // Define clear op
+  //
+  auto clear = ailoy::create<instant_method_operator_t>(
+      [](std::shared_ptr<component_t> component,
+         std::shared_ptr<const value_t> inputs) -> value_or_error_t {
+        auto model = component->get_obj("model")->as<tvm_language_model_t>();
+        model->clear();
+        return create<null_t>();
+      });
+
   // Create component
   auto ops = std::initializer_list<
       std::pair<const std::string, std::shared_ptr<method_operator_t>>>{
-      {"infer", infer}, {"apply_chat_template", apply_chat_template}};
+      {"infer", infer},
+      {"apply_chat_template", apply_chat_template},
+      {"clear", clear},
+  };
   auto rv = create<component_t>(ops);
   rv->set_obj("model", tvm_language_model);
   return rv;
