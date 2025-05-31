@@ -704,20 +704,16 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
         if (input_map->contains("ignore_reasoning_messages"))
           ignore_reasoning_messages =
               *input_map->at<bool_t>("ignore_reasoning_messages");
-        component->set_obj("ignore_reasoning_messages",
-                           create<ailoy::bool_t>(ignore_reasoning_messages));
 
         // Get temperature (optional)
+        model->config.temperature = model->get_default_config().temperature;
         if (input_map->contains("temperature"))
           model->config.temperature = *input_map->at<double_t>("temperature");
-        else
-          model->config.temperature = model->get_default_config().temperature;
 
         // Get top-p (optional)
+        model->config.top_p = model->get_default_config().top_p;
         if (input_map->contains("top_p"))
           model->config.top_p = *input_map->at<double_t>("top_p");
-        else
-          model->config.top_p = model->get_default_config().top_p;
 
         // Apply chat template on messages
         auto prompt =
@@ -731,6 +727,8 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
 
         auto rv = create<map_t>();
         rv->insert_or_assign("current_token", create<int_t>(current_token));
+        rv->insert_or_assign("ignore_reasoning_messages",
+                             create<ailoy::bool_t>(ignore_reasoning_messages));
         return rv;
       },
       //
@@ -742,8 +740,7 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
         auto model = component->get_obj("model")->as<tvm_language_model_t>();
         auto current_token = state->as<map_t>()->at<int_t>("current_token");
         bool ignore_reasoning_messages =
-            *component->get_obj("ignore_reasoning_messages")
-                 ->as<ailoy::bool_t>();
+            *state->as<map_t>()->at<bool_t>("ignore_reasoning_messages");
 
         // Repeat steps until valid output comes or it finished.
         auto resp = create<map_t>();
@@ -778,8 +775,6 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
                 resp->insert_or_assign("end_of_turn", create<bool_t>(true));
                 return ok_output_t(resp, true);
               } else if (model->is_eotc(current_token_str)) {
-                if (ignore_reasoning_messages)
-                  continue;
                 auto decoded = decode(agg_token_str, encoding_method_t::json);
                 agg_token_str = "";
                 resp->insert_or_assign("type", create<string_t>("tool_call"));
@@ -790,6 +785,8 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
                 content->insert_or_assign("function", decoded);
                 return ok_output_t(resp, false);
               } else if (model->is_eor(current_token_str)) {
+                if (ignore_reasoning_messages)
+                  continue;
                 resp->insert_or_assign("type", create<string_t>("reasoning"));
                 resp->insert_or_assign("content", create<string_t>(""));
                 resp->insert_or_assign("end_of_turn", create<bool_t>(true));
