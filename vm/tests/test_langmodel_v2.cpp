@@ -24,11 +24,15 @@ std::string
 infer(std::shared_ptr<ailoy::component_t> model,
       std::shared_ptr<ailoy::value_t> messages,
       std::shared_ptr<ailoy::value_t> tools = ailoy::create<ailoy::array_t>(),
-      bool enable_reasoning = false) {
+      bool enable_reasoning = false, bool ignore_reasoning_messages = false) {
   auto in = ailoy::create<ailoy::map_t>();
   in->insert_or_assign("messages", messages);
   if (!tools->as<ailoy::array_t>()->empty())
     in->insert_or_assign("tools", tools);
+  in->insert_or_assign("enable_reasoning",
+                       ailoy::create<ailoy::bool_t>(enable_reasoning));
+  in->insert_or_assign("ignore_reasoning_messages",
+                       ailoy::create<ailoy::bool_t>(ignore_reasoning_messages));
   in->insert_or_assign("temperature", ailoy::create<ailoy::double_t>(0.));
   in->insert_or_assign("top_p", ailoy::create<ailoy::double_t>(0.));
   auto init_out_opt = model->get_operator("infer")->initialize(in);
@@ -55,7 +59,7 @@ infer(std::shared_ptr<ailoy::component_t> model,
 
 TEST(TestLangModelV2, TestSimple) {
   auto messages_str = R"([
-  {"role": "user", "content":  "Introduce yourself"}
+  {"role": "user", "content":  "Introduce yourself in one sentence."}
 ])";
 
   std::shared_ptr<ailoy::component_t> model = get_model();
@@ -63,7 +67,7 @@ TEST(TestLangModelV2, TestSimple) {
   auto out = infer(model, messages);
   ASSERT_EQ(
       out,
-      R"(Hello! I'm an AI assistant, and I'm here to help you with your questions. If you have any questions or need assistance, feel free to ask me. I'm always happy to be a helpful and friendly companion! 😊)");
+      R"(I am a language model, and I am here to assist you with language learning and other tasks.)");
 }
 
 TEST(TestLangModelV2, TestMultiTurn) {
@@ -80,13 +84,13 @@ TEST(TestLangModelV2, TestMultiTurn) {
   {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
   {"role": "user", "content":  "Who made you? Answer it simply."},
   {"role": "assistant", "content":  "I was created by Alibaba Cloud."},
-  {"role": "user", "content":  "Based on your first answer, describe the company simply."}
+  {"role": "user", "content":  "Based on your first answer, introduce a company simply."}
 ])";
   auto messages2 = ailoy::decode(messages_str2, ailoy::encoding_method_t::json);
   auto answer2 = infer(model, messages2);
   ASSERT_EQ(
       answer2,
-      R"(Alibaba Cloud is a leading technology company in the cloud computing and software development sectors. We focus on providing innovative and scalable solutions to businesses and individuals.)");
+      R"(Alibaba Cloud is a global technology company that provides software, services, and infrastructure solutions.)");
 }
 
 TEST(TestLangModelV2, TestGrammar) {
@@ -109,6 +113,21 @@ TEST(TestLangModelV2, TestGrammar) {
   auto answer = infer(model, messages, tools);
   // std::cout << answer << std::endl;
   // model->reset_grammar("tool_call");
+}
+
+TEST(TestLangModelV2, TestReasoning) {
+  auto messages_str = R"([
+  {"role": "user", "content": "Introduce yourself."}
+])";
+
+  std::shared_ptr<ailoy::component_t> model = get_model();
+  auto messages = ailoy::decode(messages_str, ailoy::encoding_method_t::json);
+  auto out =
+      infer(model, messages, ailoy::create<ailoy::array_t>(), true, false);
+  // std::cout << out << std::endl;
+  auto out2 =
+      infer(model, messages, ailoy::create<ailoy::array_t>(), true, true);
+  // std::cout << out2 << std::endl;
 }
 
 int main(int argc, char **argv) {
