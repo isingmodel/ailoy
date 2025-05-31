@@ -32,6 +32,8 @@ struct kv_cache_t {
 public:
   kv_cache_t(std::shared_ptr<ailoy::tvm_model_t> engine) {
     auto fn = engine->get_vm_function("create_tir_paged_kv_cache");
+    if (!fn.defined())
+      throw exception("create_tir_paged_kv_cache not defined");
     kv_cache_ = fn(
         IntTuple{1}, // max_num_sequence
         IntTuple{engine->get_metadata()["context_window_size"].operator int()},
