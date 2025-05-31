@@ -715,11 +715,9 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
           temperature = *input_map->at<double_t>("temperature");
         }
         if (temperature.has_value())
-          model->as<tvm_language_model_t>()->config.temperature =
-              temperature.value();
+          model->config.temperature = temperature.value();
         else
-          model->as<tvm_language_model_t>()->config.temperature =
-              model->get_default_config().temperature;
+          model->config.temperature = model->get_default_config().temperature;
 
         // Get top-p (optional)
         std::optional<double> top_p;
