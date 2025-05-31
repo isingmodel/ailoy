@@ -531,4 +531,309 @@ void tvm_language_model_t::reset_grammar(const std::string &mode_name) {
   stream_modes_.at(mode_name).matcher = nullptr;
 }
 
+/**
+ * Internal function to validate language model messages
+ */
+std::optional<error_output_t>
+__validate_language_model_messages(const std::string &context,
+                                   std::shared_ptr<const map_t> input_map) {
+  if (!input_map->contains("messages"))
+    return error_output_t(range_error(context, "messages"));
+  if (!input_map->at("messages")->is_type_of<array_t>())
+    return error_output_t(type_error(context, "messages", "array_t",
+                                     input_map->at("messages")->get_type()));
+  auto messages = input_map->at("messages")->as<array_t>();
+  for (auto msg_val : *messages) {
+    if (!msg_val->is_type_of<map_t>())
+      return error_output_t(
+          type_error(context, "messages.*", "map_t", msg_val->get_type()));
+    auto msg = msg_val->as<map_t>();
+    if (!msg->contains("role"))
+      return error_output_t(range_error(context, "role"));
+    if (!msg->at("role")->is_type_of<string_t>())
+      return error_output_t(
+          type_error(context, "role", "string_t", msg->at("role")->get_type()));
+    if (*msg->at<string_t>("role") != "system" &&
+        *msg->at<string_t>("role") != "user" &&
+        *msg->at<string_t>("role") != "assistant" &&
+        *msg->at<string_t>("role") != "tool")
+      return error_output_t(value_error(context, "role",
+                                        "system | user | assistant | tool",
+                                        *msg->at<string_t>("role")));
+    if (!(msg->contains("content") || msg->contains("tool_calls")))
+      return error_output_t("Invalid msg schema");
+    if (msg->contains("content") &&
+        !(msg->at("content")->is_type_of<string_t>() ||
+          msg->at("content")->is_type_of<null_t>()))
+      return error_output_t("Invalid msg schema");
+    if (msg->contains("tool_calls") &&
+        !msg->at("tool_calls")->is_type_of<array_t>())
+      return error_output_t(type_error(context, "tool_calls", "string_t",
+                                       msg->at("content")->get_type()));
+  }
+  return std::nullopt;
+}
+
+/**
+ * Create component for tvm_language_model
+ */
+component_or_error_t
+create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
+  if (!inputs->is_type_of<map_t>())
+    return error_output_t(type_error("TVM Language Model: create", "inputs",
+                                     "map_t", inputs->get_type()));
+
+  auto input_map = inputs->as<map_t>();
+
+  // Parse model name
+  if (!input_map->contains("model"))
+    return error_output_t(range_error("TVM Language Model: create", "model"));
+  if (!input_map->at("model")->is_type_of<string_t>())
+    return error_output_t(type_error("TVM Language Model: create", "model",
+                                     "string_t",
+                                     input_map->at("model")->get_type()));
+  std::string model = *input_map->at<string_t>("model");
+
+  // Parse quantization(optional)
+  std::string quantization;
+  if (input_map->contains("quantization")) {
+    if (input_map->at("quantization")->is_type_of<string_t>())
+      quantization = *input_map->at<string_t>("quantization");
+    else
+      return error_output_t(
+          type_error("TVM Language Model: create", "quantization", "string_t",
+                     input_map->at("quantization")->get_type()));
+  } else
+    quantization = "q4f16_1";
+
+  // Parse device
+  int32_t device_id;
+  if (input_map->contains("device")) {
+    if (input_map->at("device")->is_type_of<int_t>())
+      device_id = *input_map->at<int_t>("device");
+    else if (input_map->at("device")->is_type_of<uint_t>())
+      device_id = *input_map->at<uint_t>("device");
+    else
+      return error_output_t(type_error("TVM Language Model: create", "device",
+                                       "int_t | uint_t",
+                                       input_map->at("device")->get_type()));
+  } else
+    device_id = 0;
+
+  auto device_opt = get_tvm_device(device_id);
+  if (!device_opt.has_value())
+    return error_output_t(
+        runtime_error("No supported device is detected for your system."));
+  auto device = device_opt.value();
+
+  // Internal model
+  std::shared_ptr<tvm_language_model_t> tvm_language_model;
+  try {
+    // Initialize model
+    tvm_language_model =
+        create<tvm_language_model_t>(model, quantization, device);
+  } catch (const exception_t<runtime_error> &e) {
+    return error_output_t(e.what());
+  }
+
+  //
+  // Define inference op
+  //
+  auto infer = ailoy::create<iterative_method_operator_t>(
+      //
+      // Init function (first call)
+      //
+      [](std::shared_ptr<component_t> component,
+         std::shared_ptr<const value_t> inputs) -> value_or_error_t {
+        if (!inputs->is_type_of<map_t>())
+          return error_output_t(type_error("TVM Language Model: infer",
+                                           "inputs", "map_t",
+                                           inputs->get_type()));
+
+        auto input_map = inputs->as<map_t>();
+
+        // Get input messages
+        auto error = __validate_language_model_messages(
+            "TVM Language Model: infer", input_map);
+        if (error.has_value())
+          return error.value();
+        auto messages = input_map->at<array_t>("messages")->to_nlohmann_json();
+
+        // Get tools (optional)
+        nlohmann::json tools;
+        if (input_map->contains("tools")) {
+          if (input_map->at("tools")->is_type_of<string_t>()) {
+            const std::string tools_str = *input_map->at<string_t>("tools");
+            if (!nlohmann::json::accept(tools_str))
+              return error_output_t(
+                  value_error("[TVM Language Model: infer] Invalid JSON "
+                              "string in tools: " +
+                              tools_str));
+            tools = nlohmann::json::parse(tools_str);
+          } else if (input_map->at("tools")->is_type_of<array_t>()) {
+            tools = input_map->at<array_t>("tools")->operator nlohmann::json();
+          } else {
+            return error_output_t(type_error(
+                "TVM Language Model: infer", "tools", "string_t | array_t",
+                input_map->at("tools")->get_type()));
+          }
+        }
+
+        // Get reasoning (optional)
+        bool enable_reasoning = false;
+        if (input_map->contains("enable_reasoning") &&
+            input_map->at("enable_reasoning")->is_type_of<bool_t>())
+          enable_reasoning = *input_map->at<bool_t>("enable_reasoning");
+
+        // Get ignore_reasoning (optional)
+        bool ignore_reasoning_messages = false;
+        if (input_map->contains("ignore_reasoning_messages") &&
+            input_map->at("ignore_reasoning_messages")->is_type_of<bool_t>())
+          ignore_reasoning_messages =
+              *input_map->at<bool_t>("ignore_reasoning_messages");
+        component->set_obj("ignore_reasoning_messages",
+                           create<ailoy::bool_t>(ignore_reasoning_messages));
+
+        // Apply chat template on messages
+        auto prompt =
+            component->get_obj("model")
+                ->as<tvm_language_model_t>()
+                ->apply_chat_template(messages, tools, enable_reasoning);
+
+        // Tokenize
+        auto tokens =
+            component->get_obj("model")->as<tvm_language_model_t>()->tokenize(
+                prompt);
+
+        // Prefill
+        auto last_token =
+            component->get_obj("model")->as<tvm_language_model_t>()->prefill(
+                tokens);
+
+        auto rv = create<map_t>();
+        rv->insert_or_assign("last_token", create<int_t>(last_token));
+        rv->insert_or_assign("tool_call_exists", create<bool_t>(false));
+        return rv;
+      },
+      //
+      // Step function
+      //
+      [](std::shared_ptr<component_t> component,
+         std::shared_ptr<value_t> state) -> output_t {
+        // Get saved values & objects
+        auto last_token = state->as<map_t>()->at<int_t>("last_token");
+        auto tool_call_exists =
+            state->as<map_t>()->at<bool_t>("tool_call_exists");
+        auto model = component->get_obj("model")->as<tvm_language_model_t>();
+        const bool ignore_reasoning_messages =
+            *component->get_obj("ignore_reasoning_messages")
+                 ->as<ailoy::bool_t>();
+
+        // check if delta needs to be dismissed
+        auto dismiss_delta =
+            [ignore_reasoning_messages](nlohmann::json delta) -> bool {
+          // case 1) dismiss if ignore option is set and output is reasoning
+          bool dismiss_reasoning =
+              (ignore_reasoning_messages && delta.value("reasoning", false));
+          // case 2) wait during content is empty and no tool calls exist
+          bool wait_valid_tool_call_output =
+              ((delta.value("content", "") == "") &&
+               !delta.contains("tool_calls"));
+          return dismiss_reasoning || wait_valid_tool_call_output;
+        };
+
+        // Repeat steps until valid output comes or it finished.
+        std::string last_token_str;
+        std::optional<std::string> finish_reason = std::nullopt;
+        try {
+          while (last_token_str.empty()) {
+            *last_token = model->decode(*last_token);
+            auto opt = model->detokenize(*last_token);
+            if (opt.has_value())
+              last_token_str = opt.value();
+          }
+          if (model->is_botc(last_token_str))
+            *tool_call_exists = true;
+          if (model->is_eos(last_token_str))
+            finish_reason = *tool_call_exists ? "tool_call" : "stop";
+        } catch (const exception_t<context_length_limit> &e) {
+          finish_reason = "length";
+        }
+
+        auto out = create<map_t>();
+        if (!last_token_str.empty())
+          out->insert_or_assign("message", create<string_t>(last_token_str));
+        if (finish_reason.has_value())
+          out->insert_or_assign("finish_reason",
+                                create<string_t>(finish_reason.value()));
+        else
+          out->insert_or_assign("finish_reason", create<null_t>());
+        return ok_output_t(out, finish_reason.has_value());
+      });
+
+  // Define inference op
+  auto apply_chat_template = ailoy::create<instant_method_operator_t>(
+      [](std::shared_ptr<component_t> component,
+         std::shared_ptr<const value_t> inputs) -> value_or_error_t {
+        // Validate inputs
+        if (!inputs->is_type_of<map_t>())
+          return error_output_t(
+              type_error("TVM Language Model: apply_chat_template", "inputs",
+                         "map_t", inputs->get_type()));
+
+        auto input_map = inputs->as<map_t>();
+
+        // Get input messages
+        auto error = __validate_language_model_messages(
+            "TVM Language Model: apply_chat_template", input_map);
+        if (error.has_value())
+          return error.value();
+        auto messages = input_map->at<array_t>("messages")->to_nlohmann_json();
+
+        // Get tools (optional)
+        nlohmann::json tools;
+        if (input_map->contains("tools")) {
+          if (input_map->at("tools")->is_type_of<string_t>()) {
+            const std::string tools_str = *input_map->at<string_t>("tools");
+            if (!nlohmann::json::accept(tools_str))
+              return error_output_t(
+                  value_error("[TVM Language Model: apply_chat_template] "
+                              "Invalid JSON string in tools: " +
+                              tools_str));
+            tools = nlohmann::json::parse(tools_str);
+          } else if (input_map->at("tools")->is_type_of<array_t>()) {
+            tools = input_map->at<array_t>("tools")->operator nlohmann::json();
+          } else {
+            return error_output_t(type_error(
+                "TVM Language Model: apply_chat_template", "tools",
+                "string_t | array_t", input_map->at("tools")->get_type()));
+          }
+        }
+
+        // Get reasoning (optional)
+        bool enable_reasoning = false;
+        if (input_map->contains("enable_reasoning"))
+          if (input_map->at("enable_reasoning")->is_type_of<bool_t>())
+            enable_reasoning = *input_map->at<bool_t>("enable_reasoning");
+
+        // Apply chat template on messages
+        auto prompt =
+            component->get_obj("model")
+                ->as<tvm_language_model_t>()
+                ->apply_chat_template(messages, tools, enable_reasoning);
+
+        auto outputs = create<map_t>();
+        outputs->insert_or_assign("prompt", create<string_t>(prompt));
+        return outputs;
+      });
+
+  // Create component
+  auto ops = std::initializer_list<
+      std::pair<const std::string, std::shared_ptr<method_operator_t>>>{
+      {"infer", infer}, {"apply_chat_template", apply_chat_template}};
+  auto rv = create<component_t>(ops);
+  rv->set_obj("model", tvm_language_model);
+  return rv;
+};
+
 } // namespace ailoy

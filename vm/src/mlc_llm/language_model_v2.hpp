@@ -10,6 +10,7 @@
 #include <tvm/runtime/packed_func.h>
 
 #include "exception.hpp"
+#include "module.hpp"
 #include "object.hpp"
 
 namespace ailoy {
@@ -62,6 +63,12 @@ public:
                   const std::string &open_indicator,
                   const std::string &close_indicator);
 
+    /**
+     * @brief Whether the currently generated token (history) matches the
+     * indicator
+     * @param indicator_type "open" or "close"
+     * @param history History of generated token
+     */
     bool check_indecator(const std::string &indicator_type,
                          const std::vector<int32_t> &history) const;
 
@@ -196,5 +203,8 @@ private:
 
   tvm::runtime::PackedFunc fsample_top_p_from_logits_;
 };
+
+component_or_error_t
+create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs);
 
 } // namespace ailoy
