@@ -659,11 +659,12 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
       //
       [](std::shared_ptr<component_t> component,
          std::shared_ptr<const value_t> inputs) -> value_or_error_t {
+        auto model = component->get_obj("model")->as<tvm_language_model_t>();
+
         if (!inputs->is_type_of<map_t>())
           return error_output_t(type_error("TVM Language Model: infer",
                                            "inputs", "map_t",
                                            inputs->get_type()));
-
         auto input_map = inputs->as<map_t>();
 
         // Get input messages
@@ -714,16 +715,11 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
           temperature = *input_map->at<double_t>("temperature");
         }
         if (temperature.has_value())
-          component->get_obj("model")
-              ->as<tvm_language_model_t>()
-              ->config.temperature = temperature.value();
+          model->as<tvm_language_model_t>()->config.temperature =
+              temperature.value();
         else
-          component->get_obj("model")
-              ->as<tvm_language_model_t>()
-              ->config.temperature = component->get_obj("model")
-                                         ->as<tvm_language_model_t>()
-                                         ->get_default_config()
-                                         .temperature;
+          model->as<tvm_language_model_t>()->config.temperature =
+              model->get_default_config().temperature;
 
         // Get top-p (optional)
         std::optional<double> top_p;
@@ -731,32 +727,19 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
           top_p = *input_map->at<double_t>("top_p");
         }
         if (top_p.has_value())
-          component->get_obj("model")
-              ->as<tvm_language_model_t>()
-              ->config.top_p = top_p.value();
+          model->config.top_p = top_p.value();
         else
-          component->get_obj("model")
-              ->as<tvm_language_model_t>()
-              ->config.top_p = component->get_obj("model")
-                                   ->as<tvm_language_model_t>()
-                                   ->get_default_config()
-                                   .top_p;
+          model->config.top_p = model->get_default_config().top_p;
 
         // Apply chat template on messages
         auto prompt =
-            component->get_obj("model")
-                ->as<tvm_language_model_t>()
-                ->apply_chat_template(messages, tools, enable_reasoning);
+            model->apply_chat_template(messages, tools, enable_reasoning);
 
         // Tokenize
-        auto tokens =
-            component->get_obj("model")->as<tvm_language_model_t>()->tokenize(
-                prompt);
+        auto tokens = model->tokenize(prompt);
 
         // Prefill
-        auto current_token =
-            component->get_obj("model")->as<tvm_language_model_t>()->prefill(
-                tokens);
+        auto current_token = model->prefill(tokens);
 
         auto rv = create<map_t>();
         rv->insert_or_assign("current_token", create<int_t>(current_token));
