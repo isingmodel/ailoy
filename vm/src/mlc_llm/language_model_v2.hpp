@@ -70,13 +70,12 @@ public:
     std::vector<int32_t> close_indicator;
 
     /**
-     * 해당 stream mode에 적용되는 grammar, model에서 set_grammar 함수에 의해
-     * 설정됨
+     * The grammar applied to a stream mode (`set_grammar`).
      */
     std::shared_ptr<grammar_t> grammar;
 
     /**
-     * Model이 grammar 적용 모드로 들어갈 때 생성됨
+     * Created when the model enters grammar-enabled mode.
      */
     std::shared_ptr<grammar_matcher_t> matcher;
   };
@@ -89,6 +88,9 @@ public:
 
   void clear();
 
+  /**
+   * Apply chat template
+   */
   std::string apply_chat_template(const nlohmann::json &messages,
                                   const nlohmann::json &tools = {},
                                   bool enable_reasoning = false,
@@ -97,31 +99,44 @@ public:
   /** Begin of reasoning */
   bool is_bor(const std::string &tok) const;
 
+  /** Begin of reasoning */
   bool is_bor(int32_t tok) const;
 
   /** End of reasoning */
   bool is_eor(const std::string &tok) const;
 
+  /** End of reasoning */
   bool is_eor(int32_t tok) const;
 
+  /** Begin of sentence */
   bool is_bos(const std::string &tok) const;
 
+  /** End of sentence */
   bool is_eos(const std::string &tok) const;
 
+  /** Begin of tool call */
   bool is_botc(const std::string &tok) const;
 
+  /** Begin of tool call */
   bool is_botc(int32_t tok) const;
 
+  /** End of tool call */
   bool is_eotc(const std::string &tok) const;
 
+  /** End of tool call */
   bool is_eotc(int32_t tok) const;
 
+  /** Tokenize prompts, before running prefill */
   std::vector<int32_t> tokenize(const std::string &prompt) const;
 
+  /** Prefill */
   int32_t prefill(const std::vector<int32_t> &tokens);
 
+  /** Decode */
   int32_t decode(int32_t last_token);
 
+  /** Output token to string. It can have no value when the incompleted unicode
+   * string generated */
   std::optional<std::string> detokenize(int32_t token);
 
   const stream_mode_t &get_mode(std::string mode_name) const;
