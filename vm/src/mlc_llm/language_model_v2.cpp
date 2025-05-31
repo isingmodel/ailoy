@@ -199,6 +199,25 @@ tvm_language_model_t::tvm_language_model_t(const std::string &model,
   stream_modes_.insert_or_assign(
       "tool_call", stream_mode_t(this, template_engine_->get_botc_token(),
                                  template_engine_->get_eotc_token()));
+
+  // Packed functions
+  fembed_ = model_->get_vm_function("embed");
+  if (!fembed_.defined())
+    throw exception("Cannot find embed function");
+  fprefill_ = model_->get_vm_function("prefill");
+  if (!fprefill_.defined())
+    throw exception("Cannot find embed function");
+  fdecode_ = model_->get_vm_function("decode");
+  if (!fdecode_.defined())
+    throw exception("Cannot find embed function");
+  fapply_bitmask_inplace_ =
+      model_->get_vm_function("apply_bitmask_inplace", true);
+  if (!fapply_bitmask_inplace_.defined())
+    throw exception("Cannot find embed function");
+  fsample_top_p_from_logits_ =
+      model_->get_function("vm.builtin.sample_top_p_from_logits");
+  if (!fsample_top_p_from_logits_.defined())
+    throw exception("Cannot find embed function");
 }
 
 void tvm_language_model_t::clear() {
@@ -312,8 +331,7 @@ int32_t tvm_language_model_t::prefill(const std::vector<int32_t> &tokens) {
 
     // Forward prefill
     kv_cache_->begin_forward(length);
-    model_->get_vm_function("prefill")(embedding_reshaped, kv_cache_->get(),
-                                       model_->get_params());
+    fprefill_(embedding_reshaped, kv_cache_->get(), model_->get_params());
     kv_cache_->end_forward();
   }
 
@@ -351,8 +369,8 @@ int32_t tvm_language_model_t::decode(int32_t last_token) {
   // In decode, the sequence length of new tokens are always 1
   kv_cache_->begin_forward(1);
   // Forward decode (output: [logits, kv_caches])
-  ObjectRef output = model_->get_vm_function("decode")(
-      embed_reshaped, kv_cache_->get(), model_->get_params());
+  ObjectRef output =
+      fdecode_(embed_reshaped, kv_cache_->get(), model_->get_params());
   kv_cache_->end_forward();
 
   // Extract logits (1 x seq_len x vocab_size)
@@ -385,18 +403,14 @@ int32_t tvm_language_model_t::decode(int32_t last_token) {
     seq_ids.CopyFrom(seq_ids_cpu);
 
     // Apply bitmask to logits
-    PackedFunc fapply_bitmask_inplace =
-        model_->get_vm_function("apply_bitmask_inplace", true);
-    fapply_bitmask_inplace(logits.CreateView({1, vocab_size}, F32),  // logits
-                           seq_ids,                                  // seq_ids
-                           bitmask.CreateView({1, bitmask_len}, I32) // bitmask
+    fapply_bitmask_inplace_(logits.CreateView({1, vocab_size}, F32),  // logits
+                            seq_ids,                                  // seq_ids
+                            bitmask.CreateView({1, bitmask_len}, I32) // bitmask
     );
   }
 
   // Sample token from logits
-  auto fsample_top_p_from_logits =
-      model_->get_function("vm.builtin.sample_top_p_from_logits");
-  int32_t sampled_token = fsample_top_p_from_logits(
+  int32_t sampled_token = fsample_top_p_from_logits_(
       logits, config.temperature, config.top_p, random_float(0.0, 1.0));
 
   // Register it to history

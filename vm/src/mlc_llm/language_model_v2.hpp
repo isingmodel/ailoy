@@ -7,6 +7,7 @@
 
 #include <nlohmann/json.hpp>
 #include <tvm/runtime/ndarray.h>
+#include <tvm/runtime/packed_func.h>
 
 #include "exception.hpp"
 #include "object.hpp"
@@ -169,6 +170,16 @@ private:
   std::string current_stream_mode_;
 
   std::unordered_map<std::string, stream_mode_t> stream_modes_;
+
+  tvm::runtime::PackedFunc fembed_;
+
+  tvm::runtime::PackedFunc fprefill_;
+
+  tvm::runtime::PackedFunc fdecode_;
+
+  tvm::runtime::PackedFunc fapply_bitmask_inplace_;
+
+  tvm::runtime::PackedFunc fsample_top_p_from_logits_;
 };
 
 } // namespace ailoy

@@ -52,9 +52,7 @@ TEST(TestLangModelV2, TestSimple) {
 
   ASSERT_EQ(
       answer,
-      "Hello! I'm an AI assistant, and I'm here to help you with your "
-      "questions. If you have any questions or need assistance, feel free to "
-      "ask me. I'm always happy to be a helpful and friendly companion! 😊");
+      R"(Hello! I'm an AI assistant, and I'm here to help you with your questions. If you have any questions or need assistance, feel free to ask me. I'm always happy to be a helpful and friendly companion! 😊)");
 
   model->clear();
 }
@@ -93,10 +91,9 @@ TEST(TestLangModelV2, TestMultiTurn) {
     messages.push_back(object);
   }
   auto answer2 = infer(model, messages);
-  ASSERT_EQ(answer2,
-            "Alibaba Cloud is a leading technology company in the cloud "
-            "computing and software development sectors. We focus on providing "
-            "innovative and scalable solutions to businesses and individuals.");
+  ASSERT_EQ(
+      answer2,
+      R"(Alibaba Cloud is a leading technology company in the cloud computing and software development sectors. We focus on providing innovative and scalable solutions to businesses and individuals.)");
 }
 
 TEST(TestLangModelV2, TestGrammar) {
