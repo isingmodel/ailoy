@@ -57,6 +57,43 @@ TEST(TestLangModelV2, TestSimple) {
   model->clear();
 }
 
+static const std::string QWEN_MESSAGES = R"([
+  {"role": "system", "content": "You are a friendly chatbot who always responds in the style of a pirate."},
+  {"role": "user", "content":  "who are you?"}
+])";
+
+// TEST(TestLangModelV2, TestComponent) {
+//   std::shared_ptr<ailoy::component_t> language_model;
+//   {
+//     auto in = ailoy::create<ailoy::map_t>();
+//     in->insert_or_assign("model",
+//                          ailoy::create<ailoy::string_t>("Qwen/Qwen3-0.6B"));
+//     auto language_model_opt =
+//     ailoy::create_tvm_language_model_v2_component(in);
+//     ASSERT_EQ(language_model_opt.index(), 0);
+//     language_model = std::get<0>(language_model_opt);
+//   }
+//   {
+//     auto in = ailoy::create<ailoy::map_t>();
+//     auto messages =
+//         ailoy::decode(QWEN_MESSAGES, ailoy::encoding_method_t::json);
+//     in->insert_or_assign("messages", messages);
+//     auto init_out = language_model->get_operator("infer")->initialize(in);
+//     while (true) {
+//       auto out_opt = language_model->get_operator("infer")->step();
+//       ASSERT_EQ(out_opt.index(), 0);
+//       auto out = std::get<0>(out_opt).val->as<ailoy::map_t>();
+//       if (out->contains("message")) {
+//         auto delta =
+//             out->at<ailoy::map_t>("message")->at<ailoy::string_t>("content");
+//         std::cout << *delta << std::endl;
+//       }
+//       if (out->contains("finish_reason"))
+//         break;
+//     }
+//   }
+// }
+
 TEST(TestLangModelV2, TestMultiTurn) {
   auto model = get_model();
 

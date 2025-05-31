@@ -535,8 +535,8 @@ void tvm_language_model_t::reset_grammar(const std::string &mode_name) {
  * Internal function to validate language model messages
  */
 std::optional<error_output_t>
-__validate_language_model_messages(const std::string &context,
-                                   std::shared_ptr<const map_t> input_map) {
+_validate_language_model_input(const std::string &context,
+                               std::shared_ptr<const map_t> input_map) {
   if (!input_map->contains("messages"))
     return error_output_t(range_error(context, "messages"));
   if (!input_map->at("messages")->is_type_of<array_t>())
@@ -571,6 +571,17 @@ __validate_language_model_messages(const std::string &context,
       return error_output_t(type_error(context, "tool_calls", "string_t",
                                        msg->at("content")->get_type()));
   }
+  if (input_map->contains("temperature"))
+    if (!input_map->at("temperature")->is_type_of<double_t>())
+      return error_output_t(
+          type_error(context, "temperature", "double_t",
+                     input_map->at("temperature")->get_type()));
+
+  if (input_map->contains("top_p"))
+    if (!input_map->at("top_p")->is_type_of<double_t>())
+      return error_output_t(type_error(context, "top_p", "double_t",
+                                       input_map->at("top_p")->get_type()));
+
   return std::nullopt;
 }
 
@@ -653,8 +664,8 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
         auto input_map = inputs->as<map_t>();
 
         // Get input messages
-        auto error = __validate_language_model_messages(
-            "TVM Language Model: infer", input_map);
+        auto error = _validate_language_model_input("TVM Language Model: infer",
+                                                    input_map);
         if (error.has_value())
           return error.value();
         auto messages = input_map->at<array_t>("messages")->to_nlohmann_json();
@@ -693,6 +704,26 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
               *input_map->at<bool_t>("ignore_reasoning_messages");
         component->set_obj("ignore_reasoning_messages",
                            create<ailoy::bool_t>(ignore_reasoning_messages));
+
+        // Get temperature (optional)
+        std::optional<double> temperature;
+        if (input_map->contains("temperature")) {
+          temperature = *input_map->at<double_t>("temperature");
+        }
+        if (temperature.has_value())
+          component->get_obj("model")
+              ->as<tvm_language_model_t>()
+              ->config.temperature = temperature.value();
+
+        // Get top-p (optional)
+        std::optional<double> top_p;
+        if (input_map->contains("top_p")) {
+          top_p = *input_map->at<double_t>("top_p");
+        }
+        if (top_p.has_value())
+          component->get_obj("model")
+              ->as<tvm_language_model_t>()
+              ->config.top_p = top_p.value();
 
         // Apply chat template on messages
         auto prompt =
@@ -761,13 +792,16 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
         }
 
         auto out = create<map_t>();
-        if (!last_token_str.empty())
-          out->insert_or_assign("message", create<string_t>(last_token_str));
+        if (!last_token_str.empty()) {
+          auto message = create<map_t>();
+          auto content = create<string_t>(last_token_str);
+          message->insert_or_assign("role", create<string_t>("assistant"));
+          message->insert_or_assign("content", content);
+          out->insert_or_assign("message", message);
+        }
         if (finish_reason.has_value())
           out->insert_or_assign("finish_reason",
                                 create<string_t>(finish_reason.value()));
-        else
-          out->insert_or_assign("finish_reason", create<null_t>());
         return ok_output_t(out, finish_reason.has_value());
       });
 
@@ -784,7 +818,7 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
         auto input_map = inputs->as<map_t>();
 
         // Get input messages
-        auto error = __validate_language_model_messages(
+        auto error = _validate_language_model_input(
             "TVM Language Model: apply_chat_template", input_map);
         if (error.has_value())
           return error.value();
