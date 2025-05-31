@@ -157,6 +157,22 @@ if(AILOY_WITH_FAISS)
     target_link_libraries(ailoy_vm_obj PUBLIC faiss)
 endif()
 
+# # xgrammar
+# FetchContent_Declare(
+#     xgrammar
+#     URL https://github.com/mlc-ai/xgrammar/archive/refs/tags/v0.1.19.tar.gz
+#     EXCLUDE_FROM_ALL
+# )
+# # Since xgrammar overrides settings via a config file, calling `set` in here has no effect.
+# # Instead, create a `config.cmake` file to set the configuration.
+# if(NOT EXISTS "${CMAKE_BINARY_DIR}/config.cmake")
+#   file(WRITE "${CMAKE_BINARY_DIR}/config.cmake" "")
+# endif()
+# file(APPEND "${CMAKE_BINARY_DIR}/config.cmake" "set(XGRAMMAR_BUILD_PYTHON_BINDINGS OFF)\n")
+# FetchContent_MakeAvailable(xgrammar)
+# target_link_libraries(xgrammar PRIVATE dlpack)
+# target_link_libraries(ailoy_vm_obj PRIVATE xgrammar)
+
 if(AILOY_WITH_TEST)
     add_executable(test_debug_module ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_debug_module.cpp)
     target_include_directories(test_debug_module PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

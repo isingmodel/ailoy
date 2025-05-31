@@ -1,8 +1,12 @@
 #include "language_model_v2.hpp"
 
+#include <random>
+
 #include <dlpack/dlpack.h>
 #include <nlohmann/json.hpp>
+#include <xgrammar/xgrammar.h>
 
+#include "../file_util.hpp"
 #include "chat_template_engine.hpp"
 #include "model_cache.hpp"
 #include "tokenizer.hpp"
@@ -15,7 +19,16 @@ using namespace tvm::runtime;
 
 namespace ailoy {
 
-class kv_cache_t {
+double random_float(double min, double max) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(min, max);
+  return dis(gen);
+}
+
+constexpr size_t page_size = 16;
+
+struct kv_cache_t {
 public:
   kv_cache_t(std::shared_ptr<ailoy::tvm_model_t> engine) {
     auto fn = engine->get_vm_function("create_tir_paged_kv_cache");
@@ -23,9 +36,10 @@ public:
         IntTuple{1}, // max_num_sequence
         IntTuple{engine->get_metadata()["context_window_size"].operator int()},
         IntTuple{engine->get_metadata()["prefill_chunk_size"].operator int()},
-        IntTuple{16}, // page size
+        IntTuple{page_size}, // page size
         IntTuple{engine->get_metadata()["sliding_window_size"].operator int() !=
                  -1});
+    fkv_state_clear_ = engine->get_function("vm.builtin.kv_state_clear");
     fkv_state_add_sequence_ =
         engine->get_function("vm.builtin.kv_state_add_sequence");
     fkv_state_remove_sequence_ =
@@ -36,28 +50,56 @@ public:
         engine->get_function("vm.builtin.kv_state_begin_forward");
     fkv_state_end_forward_ =
         engine->get_function("vm.builtin.kv_state_end_forward");
+    fkv_state_popn_ = engine->get_function("vm.builtin.kv_state_popn");
+    fkv_cache_get_num_available_pages_ = engine->get_function(
+        "vm.builtin.attention_kv_cache_get_num_available_pages");
+    fkv_cache_get_total_sequence_length_ = engine->get_function(
+        "vm.builtin.attention_kv_cache_get_total_sequence_length");
+
+    // Register sequence index
+    add_sequence();
   }
+
+  ~kv_cache_t() { remove_sequence(); }
 
   ObjectRef get() { return kv_cache_; }
 
-  void add_sequence(size_t sequence_id) {
-    fkv_state_add_sequence_(kv_cache_, sequence_id);
+  void clear() {
+    fkv_state_clear_(kv_cache_);
+    add_sequence();
   }
 
-  void remove_sequence(size_t sequence_id) {
-    fkv_state_remove_sequence_(kv_cache_, sequence_id);
+  void add_sequence() {
+    fkv_state_add_sequence_(kv_cache_, 0 /* Sequence ID */);
   }
 
-  void begin_forward(size_t sequence_id, size_t sequence_length) {
-    fkv_state_begin_forward_(kv_cache_,
-                             IntTuple{static_cast<int32_t>(sequence_id)},
+  void remove_sequence() {
+    fkv_state_remove_sequence_(kv_cache_, 0 /* Sequence ID */);
+  }
+
+  void begin_forward(size_t sequence_length) {
+    fkv_state_begin_forward_(kv_cache_, IntTuple{0 /* Sequence ID */},
                              IntTuple{static_cast<int32_t>(sequence_length)});
   }
 
   void end_forward() { fkv_state_end_forward_(kv_cache_); }
 
+  void popn(size_t num_tokens) {
+    fkv_state_popn_(kv_cache_, 0 /* Sequence ID */, (int)(num_tokens));
+  }
+
+  int get_num_available_pages() {
+    return fkv_cache_get_num_available_pages_(kv_cache_);
+  }
+
+  int get_total_sequence_length() {
+    return fkv_cache_get_total_sequence_length_(kv_cache_);
+  }
+
 private:
   ObjectRef kv_cache_;
+
+  PackedFunc fkv_state_clear_;
 
   PackedFunc fkv_state_add_sequence_;
 
@@ -68,73 +110,409 @@ private:
   PackedFunc fkv_state_begin_forward_;
 
   PackedFunc fkv_state_end_forward_;
+
+  PackedFunc fkv_state_popn_;
+
+  PackedFunc fkv_cache_get_num_available_pages_;
+
+  PackedFunc fkv_cache_get_total_sequence_length_;
 };
 
-void temp() {
-  auto engine =
-      create<tvm_model_t>("Qwen/Qwen3-0.6B", "q4f16_1",
-                          DLDevice{.device_type = kDLMetal, .device_id = 0});
+struct tokenizer_info_t {
+  tokenizer_info_t(xgrammar::TokenizerInfo &&inner_)
+      : inner(std::move(inner_)) {}
 
-  auto template_engine = chat_template_engine_t::make_from_config_file(
-      engine->get_model_path() / "chat-template-config.json");
+  xgrammar::TokenizerInfo inner;
+};
 
-  auto tokenizer =
-      create<tokenizer_t>(engine->get_model_path() / "tokenizer.json");
+struct grammar_t {
+  grammar_t(xgrammar::CompiledGrammar &&inner_) : inner(std::move(inner_)) {}
 
-  // Create kv-cache
-  kv_cache_t kv_cache{engine};
+  xgrammar::CompiledGrammar inner;
+};
 
-  // Example input
-  nlohmann::json messages = nlohmann::json::array();
+struct grammar_matcher_t {
+  grammar_matcher_t(xgrammar::GrammarMatcher &&inner_)
+      : inner(std::move(inner_)) {}
+
+  xgrammar::GrammarMatcher inner;
+};
+
+tvm_language_model_t::stream_mode_t::stream_mode_t(
+    tvm_language_model_t *model, const std::string &open_indicator_,
+    const std::string &close_indicator_) {
+  open_indicator = model->tokenizer_->encode(open_indicator_);
+  close_indicator = model->tokenizer_->encode(close_indicator_);
+}
+
+bool tvm_language_model_t::stream_mode_t::check_indecator(
+    const std::string &indicator_type,
+    const std::vector<int32_t> &history) const {
+  const auto &indicator =
+      indicator_type == "open" ? open_indicator : close_indicator;
+  if (history.size() < indicator.size())
+    return false;
+  auto it1 = history.rbegin();
+  auto it2 = indicator.rbegin();
+  while (it1 != history.rend() && it2 != indicator.rend()) {
+    if (*it1 != *it2)
+      return false;
+    ++it1;
+    ++it2;
+  }
+  return true;
+}
+
+tvm_language_model_t::tvm_language_model_t(const std::string &model,
+                                           const std::string &quantization,
+                                           DLDevice device) {
+  model_ = create<tvm_model_t>(model, quantization, device);
+  template_engine_ = chat_template_engine_t::make_from_config_file(
+      model_->get_model_path() / "chat-template-config.json");
+  tokenizer_ = create<tokenizer_t>(model_->get_model_path() / "tokenizer.json");
+  kv_cache_ = create<kv_cache_t>(model_);
+  config = config_t{.temperature = model_->get_mlc_chat_config()["temperature"],
+                    .top_p = model_->get_mlc_chat_config()["top_p"]};
+  default_config_ = config;
+  current_stream_mode_ = "output_text";
+
+  // Initiating tokenizer info
   {
-    auto object = nlohmann::json::object();
-    object["role"] = "user";
-    object["content"] = "Introduce yourself";
-    messages.push_back(object);
+    // 1. vocab.json → encoded_vocab
+    std::vector<std::string> vocabs(tokenizer_->get_vocab_size());
+    for (int32_t i = 0; i < vocabs.size(); i++)
+      vocabs[i] = tokenizer_->token_id_to_str(i);
+
+    // 2. tokenizer.json → backend_str
+    std::string backend_str =
+        utils::LoadBytesFromFile(model_->get_model_path() / "tokenizer.json");
+
+    // 3. Create tokenizer info
+    tokenizer_info_ = create<tokenizer_info_t>(std::move(
+        xgrammar::TokenizerInfo::FromHuggingFace(vocabs, backend_str)));
   }
 
-  // Apply chat template
-  auto templated_input = template_engine->apply_chat_template(messages);
+  // Add default modes
+  stream_modes_.insert_or_assign("output_text", stream_mode_t(this, "", ""));
+  stream_modes_.insert_or_assign("reasoning",
+                                 stream_mode_t(this, "<think>", "</think>"));
+  stream_modes_.insert_or_assign(
+      "tool_call", stream_mode_t(this, template_engine_->get_botc_token(),
+                                 template_engine_->get_eotc_token()));
+}
 
-  // Tokenization
-  auto tokens = tokenizer->encode(templated_input);
+void tvm_language_model_t::clear() {
+  kv_cache_->clear();
+  history_.clear();
+}
 
-  int32_t tokens_length = tokens.size();
+std::string tvm_language_model_t::apply_chat_template(
+    const nlohmann::json &messages, const nlohmann::json &tools,
+    bool enable_reasoning, bool add_generation_prompt) const {
+  return template_engine_->apply_chat_template(
+      messages, tools, enable_reasoning, add_generation_prompt);
+}
+
+bool tvm_language_model_t::is_bor(const std::string &tok) const {
+  return tok == "<think>";
+}
+
+bool tvm_language_model_t::is_bor(int32_t tok) const {
+  return is_bor(tokenizer_->token_id_to_str(tok));
+}
+
+bool tvm_language_model_t::is_eor(const std::string &tok) const {
+  return tok == "</think>";
+}
+
+bool tvm_language_model_t::is_eor(int32_t tok) const {
+  return is_eor(tokenizer_->token_id_to_str(tok));
+}
+
+bool tvm_language_model_t::is_bos(const std::string &tok) const {
+  return template_engine_->is_bos_token(tok);
+}
+
+bool tvm_language_model_t::is_eos(const std::string &tok) const {
+  return template_engine_->is_eos_token(tok);
+}
+
+bool tvm_language_model_t::is_botc(const std::string &tok) const {
+  return template_engine_->is_botc_token(tok);
+}
+
+bool tvm_language_model_t::is_botc(int32_t tok) const {
+  return is_botc(tokenizer_->token_id_to_str(tok));
+}
+
+bool tvm_language_model_t::is_eotc(const std::string &tok) const {
+  return template_engine_->is_eotc_token(tok);
+}
+
+bool tvm_language_model_t::is_eotc(int32_t tok) const {
+  return is_eotc(tokenizer_->token_id_to_str(tok));
+}
+
+std::vector<int32_t>
+tvm_language_model_t::tokenize(const std::string &prompt) const {
+  return std::move(tokenizer_->encode(prompt));
+}
+
+int32_t tvm_language_model_t::prefill(const std::vector<int32_t> &tokens) {
+  if (tokens.empty())
+    throw exception("Token must not be empty");
+
+  // Make sure that kv-cache and history is sync
+  if (kv_cache_->get_total_sequence_length() != history_.size())
+    this->clear();
+
+  // The longest common prefix (LCP) between inputs & previous conversations
+  size_t lcp_index = 0;
+  while (lcp_index < history_.size() && lcp_index < tokens.size()) {
+    if (history_[lcp_index] != tokens[lcp_index])
+      break;
+    ++lcp_index;
+  }
+
+  // Rewind the head of kv-cache to the LCP
+  if (lcp_index < history_.size()) {
+    kv_cache_->popn(history_.size() - lcp_index);
+  }
+
+  // Tokens to be added (wihout common prefixes)
+  std::vector<int32_t> new_tokens(tokens.begin() + lcp_index, tokens.end());
+  if (new_tokens.empty())
+    return *history_.rbegin();
+
+  // Calculate remaining space in KV cache
+  if (new_tokens.size() >= kv_cache_->get_num_available_pages() * page_size) {
+    throw exception<context_length_limit>();
+  }
+
+  // Chunk size to be split
+  size_t prefill_chunk_size = model_->get_metadata()["prefill_chunk_size"];
+  for (size_t i = 0; i < new_tokens.size(); i += prefill_chunk_size) {
+    // Prefill i to j
+    size_t j = (i + prefill_chunk_size < new_tokens.size())
+                   ? i + prefill_chunk_size
+                   : new_tokens.size();
+    int32_t length = j - i;
+    DLDataType I32 = DLDataType{.code = kDLInt, .bits = 32, .lanes = 1};
+
+    // Input NDArray
+    NDArray input = NDArray::Empty({length}, I32, model_->get_device());
+    input.CopyFromBytes(new_tokens.data(), new_tokens.size() * sizeof(int32_t));
+
+    // Embedding of the input
+    NDArray embedding =
+        model_->get_vm_function("embed")(input, model_->get_params());
+    NDArray embedding_reshaped = embedding.CreateView(
+        ShapeTuple{1, embedding->shape[0], embedding->shape[1]},
+        embedding.DataType());
+
+    // Forward prefill
+    kv_cache_->begin_forward(length);
+    model_->get_vm_function("prefill")(embedding_reshaped, kv_cache_->get(),
+                                       model_->get_params());
+    kv_cache_->end_forward();
+  }
+
+  // Update history
+  history_ = tokens;
+
+  // We reset the stream mode, since we consider `prefill` as the begin of a new
+  // inference,
+  current_stream_mode_ = "output_text";
+
+  // Returns the last token, so that the `decode` can start with it.
+  return *new_tokens.rbegin();
+}
+
+int32_t tvm_language_model_t::decode(int32_t last_token) {
+  DLDataType U32 = DLDataType{.code = kDLUInt, .bits = 32, .lanes = 1};
   DLDataType I32 = DLDataType{.code = kDLInt, .bits = 32, .lanes = 1};
   DLDataType F32 = DLDataType{.code = kDLFloat, .bits = 32, .lanes = 1};
 
-  NDArray token_ids =
-      NDArray::Empty({tokens_length}, I32, engine->get_device());
-  token_ids.CopyFromBytes(tokens.data(),
-                          tokens.size() * sizeof(decltype(tokens)::value_type));
+  // Calculate remaining space in KV cache
+  if (kv_cache_->get_num_available_pages() < 1) {
+    throw exception<context_length_limit>();
+  }
 
+  // Input NDArray
+  NDArray token_ids = NDArray::Empty({1}, I32, model_->get_device());
+  token_ids.CopyFromBytes(&last_token, sizeof(int32_t));
+
+  // Embed
   NDArray embed =
-      engine->get_vm_function("embed")(token_ids, engine->get_params());
-  NDArray embed_reshaped = embed.CreateView(
-      ShapeTuple{1, embed->shape[0], embed->shape[1]}, embed.DataType());
-  std::cout << embed.Shape() << std::endl;
+      model_->get_vm_function("embed")(token_ids, model_->get_params());
+  tvm::runtime::NDArray embed_reshaped = embed.CreateView(
+      tvm::ShapeTuple{1, 1, embed->shape[1]}, embed.DataType());
 
-  kv_cache.add_sequence(0);
+  // In decode, the sequence length of new tokens are always 1
+  kv_cache_->begin_forward(1);
+  // Forward decode (output: [logits, kv_caches])
+  ObjectRef output = model_->get_vm_function("decode")(
+      embed_reshaped, kv_cache_->get(), model_->get_params());
+  kv_cache_->end_forward();
 
-  kv_cache.begin_forward(0, tokens_length);
-  engine->get_vm_function("prefill")(embed_reshaped, kv_cache.get(),
-                                     engine->get_params());
-  kv_cache.end_forward();
+  // Extract logits (1 x seq_len x vocab_size)
+  NDArray logits = Downcast<Array<NDArray>>(output)[0];
+  const int seq_len = logits.Shape()[1];
+  auto vocab_size = logits.Shape()[2];
 
-  // {
-  //   tvm::IntTuple sequence_ids_tuple{1L};
-  //   tvm::IntTuple input_length_shape{1};
-  //   kv_cache.begin_forward(0, tokens_length);
-  //   tvm::runtime::NDArray embed = fembed_(inputs, engine->get_params());
-  //   tvm::runtime::ObjectRef return_value;
-  //   tvm::runtime::NDArray embed_reshaped = embed.CreateView(
-  //       tvm::ShapeTuple{1, 1, embed->shape[1]}, embed.DataType());
-  //   return_value =
-  //       fdecode_(embed_reshaped, kv_cache.get(), engine->get_params());
-  //   kv_cache.end_forward();
-  // }
+  // Sampling
+  if (get_current_grammar_matcher()) {
+    auto &matcher = get_current_grammar_matcher()->inner;
 
-  kv_cache.remove_sequence(0);
+    // Create bitmask
+    int bitmask_len = (vocab_size + 31) / 32;
+    NDArray bitmask_cpu = NDArray::Empty(
+        {bitmask_len}, I32, DLDevice{.device_type = kDLCPU, .device_id = 0});
+
+    // Apply matcher
+    matcher.GetNextTokenBitmask(&bitmask_cpu.ToDLPack()->dl_tensor);
+
+    // Copy bitmask to GPU
+    NDArray bitmask = NDArray::Empty({bitmask_len}, I32, model_->get_device());
+    bitmask.CopyFrom(bitmask_cpu);
+
+    // Create seq_id
+    NDArray seq_ids_cpu = NDArray::Empty(
+        {1}, I32, DLDevice{.device_type = kDLCPU, .device_id = 0});
+    auto seq_ids_cpu_data = static_cast<int32_t *>(seq_ids_cpu->data);
+    seq_ids_cpu_data[0] = 0;
+    NDArray seq_ids = NDArray::Empty({1}, I32, model_->get_device());
+    seq_ids.CopyFrom(seq_ids_cpu);
+
+    // Apply bitmask to logits
+    PackedFunc fapply_bitmask_inplace =
+        model_->get_vm_function("apply_bitmask_inplace", true);
+    fapply_bitmask_inplace(logits.CreateView({1, vocab_size}, F32),  // logits
+                           seq_ids,                                  // seq_ids
+                           bitmask.CreateView({1, bitmask_len}, I32) // bitmask
+    );
+  }
+
+  // Sample token from logits
+  auto fsample_top_p_from_logits =
+      model_->get_function("vm.builtin.sample_top_p_from_logits");
+  int32_t sampled_token = fsample_top_p_from_logits(
+      logits, config.temperature, config.top_p, random_float(0.0, 1.0));
+
+  // Register it to history
+  history_.push_back(sampled_token);
+
+  // Update matcher
+  if (get_current_grammar_matcher()) {
+    auto &matcher = get_current_grammar_matcher()->inner;
+    matcher.AcceptToken(sampled_token);
+    if (matcher.IsTerminated())
+      stream_modes_.at(current_stream_mode_).matcher = nullptr;
+  }
+
+  // Update streaming mode
+  if (current_stream_mode_ == "output_text") {
+    for (auto [name, mode] : stream_modes_) {
+      if (name == "output_text")
+        continue;
+      if (!mode.check_indecator("open", history_))
+        continue;
+      if (mode.grammar) {
+        auto matcher =
+            xgrammar::GrammarMatcher(mode.grammar->inner, mode.close_indicator);
+        mode.matcher = create<grammar_matcher_t>(std::move(matcher));
+      }
+      current_stream_mode_ = name;
+      break;
+    }
+  } else {
+    const auto &current_mode = stream_modes_.at(current_stream_mode_);
+    if (current_mode.check_indecator("close", history_)) {
+      auto name = current_stream_mode_;
+      if (stream_modes_.at(name).grammar)
+        stream_modes_.at(name).matcher = nullptr;
+      current_stream_mode_ = "output_text";
+    }
+  }
+
+  return sampled_token;
+}
+
+std::optional<std::string> tvm_language_model_t::detokenize(int32_t token) {
+  output_stream_.push_back(token);
+  auto str = tokenizer_->decode(output_stream_, false);
+  if (str.ends_with("�"))
+    return std::nullopt;
+  else {
+    output_stream_.clear();
+    return str;
+  }
+}
+
+const tvm_language_model_t::stream_mode_t &
+tvm_language_model_t::get_mode(std::string mode_name) const {
+  return stream_modes_.at(mode_name);
+}
+
+void tvm_language_model_t::add_mode(std::string mode_name,
+                                    const std::string &open_indicator,
+                                    const std::string &close_indicator) {
+  stream_modes_.insert_or_assign(
+      mode_name, stream_mode_t(this, open_indicator, close_indicator));
+}
+
+void tvm_language_model_t::remove_mode(std::string mode_name) {
+  stream_modes_.erase(mode_name);
+}
+
+std::shared_ptr<grammar_matcher_t>
+tvm_language_model_t::get_current_grammar_matcher() {
+  auto current_stream_mode = stream_modes_.at(current_stream_mode_);
+  return current_stream_mode.matcher;
+}
+
+void tvm_language_model_t::set_builtin_grammar(
+    const std::string &mode_name, const std::string &grammar_type) {
+  if (grammar_type == "json") {
+    auto grammar = xgrammar::BuiltinGrammar::JSON();
+    auto compiled_grammar =
+        xgrammar::CompiledGrammar(grammar, tokenizer_info_->inner);
+    stream_modes_.at(mode_name).grammar =
+        create<grammar_t>(std::move(compiled_grammar));
+  } else {
+    throw exception("Unknown grammer type");
+  }
+}
+
+void tvm_language_model_t::set_json_schema_grammar(
+    const std::string &mode_name, const std::string &json_schema) {
+  auto grammar = xgrammar::BuiltinGrammar::JSONSchema(json_schema);
+  auto compiled_grammar =
+      xgrammar::CompiledGrammar(grammar, tokenizer_info_->inner);
+  stream_modes_.at(mode_name).grammar =
+      create<grammar_t>(std::move(compiled_grammar));
+}
+
+void tvm_language_model_t::set_regex_grammar(const std::string &mode_name,
+                                             const std::string &regex) {
+  return set_ebnf_grammar(mode_name,
+                          xgrammar::BuiltinGrammar::_RegexToEBNF(regex));
+}
+
+void tvm_language_model_t::set_ebnf_grammar(const std::string &mode_name,
+                                            const std::string &ebnf) {
+  auto grammar = xgrammar::BNFGrammar(ebnf);
+  auto compiled_grammar =
+      xgrammar::CompiledGrammar(grammar, tokenizer_info_->inner);
+  stream_modes_.at(mode_name).grammar =
+      create<grammar_t>(std::move(compiled_grammar));
+}
+
+void tvm_language_model_t::reset_grammar(const std::string &mode_name) {
+  if (!stream_modes_.contains(mode_name))
+    return;
+  stream_modes_.at(mode_name).grammar = nullptr;
+  stream_modes_.at(mode_name).matcher = nullptr;
 }
 
 } // namespace ailoy

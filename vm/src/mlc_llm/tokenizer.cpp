@@ -17,6 +17,12 @@ tokenizer_t::tokenizer_t(const std::filesystem::path &json_file_path) {
 
 tokenizer_t::~tokenizer_t() { tokenizers_free(handle_); }
 
+size_t tokenizer_t::get_vocab_size() {
+  size_t rv;
+  tokenizers_get_vocab_size(handle_, &rv);
+  return rv;
+}
+
 std::vector<tokenizer_t::token_t> tokenizer_t::encode(const std::string &text,
                                                       bool add_special_token) {
   TokenizerEncodeResult result;
@@ -45,6 +51,21 @@ std::string tokenizer_t::decode(const std::vector<tokenizer_t::token_t> &ids,
 
   std::string rv(rv_data, len);
   return rv;
+}
+
+tokenizer_t::token_t
+tokenizer_t::token_str_to_id(const std::string &token_str) {
+  const char *token_c_str = token_str.c_str();
+  token_t token_id;
+  tokenizers_token_to_id(handle_, token_c_str, token_str.length(), &token_id);
+  return token_id;
+}
+
+std::string tokenizer_t::token_id_to_str(token_t token_id) {
+  const char *token_str;
+  size_t token_str_len;
+  tokenizers_id_to_token(handle_, token_id, &token_str, &token_str_len);
+  return std::string(token_str, token_str_len);
 }
 
 } // namespace ailoy

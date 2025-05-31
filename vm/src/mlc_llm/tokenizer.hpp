@@ -16,11 +16,17 @@ public:
 
   ~tokenizer_t();
 
+  size_t get_vocab_size();
+
   std::vector<token_t> encode(const std::string &text,
                               bool add_special_token = true);
 
   std::string decode(const std::vector<token_t> &ids,
                      bool skip_special_tokens = true);
+
+  token_t token_str_to_id(const std::string &token_str);
+
+  std::string token_id_to_str(token_t token_id);
 
 private:
   /**
