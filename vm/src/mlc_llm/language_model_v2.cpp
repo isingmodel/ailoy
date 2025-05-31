@@ -696,36 +696,26 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
 
         // Get reasoning (optional)
         bool enable_reasoning = false;
-        if (input_map->contains("enable_reasoning") &&
-            input_map->at("enable_reasoning")->is_type_of<bool_t>())
+        if (input_map->contains("enable_reasoning"))
           enable_reasoning = *input_map->at<bool_t>("enable_reasoning");
 
         // Get ignore_reasoning (optional)
         bool ignore_reasoning_messages = false;
-        if (input_map->contains("ignore_reasoning_messages") &&
-            input_map->at("ignore_reasoning_messages")->is_type_of<bool_t>())
+        if (input_map->contains("ignore_reasoning_messages"))
           ignore_reasoning_messages =
               *input_map->at<bool_t>("ignore_reasoning_messages");
         component->set_obj("ignore_reasoning_messages",
                            create<ailoy::bool_t>(ignore_reasoning_messages));
 
         // Get temperature (optional)
-        std::optional<double> temperature;
-        if (input_map->contains("temperature")) {
-          temperature = *input_map->at<double_t>("temperature");
-        }
-        if (temperature.has_value())
-          model->config.temperature = temperature.value();
+        if (input_map->contains("temperature"))
+          model->config.temperature = *input_map->at<double_t>("temperature");
         else
           model->config.temperature = model->get_default_config().temperature;
 
         // Get top-p (optional)
-        std::optional<double> top_p;
-        if (input_map->contains("top_p")) {
-          top_p = *input_map->at<double_t>("top_p");
-        }
-        if (top_p.has_value())
-          model->config.top_p = top_p.value();
+        if (input_map->contains("top_p"))
+          model->config.top_p = *input_map->at<double_t>("top_p");
         else
           model->config.top_p = model->get_default_config().top_p;
 
