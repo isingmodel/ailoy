@@ -146,6 +146,8 @@ public:
    * string generated */
   std::optional<std::string> detokenize(int32_t token);
 
+  const std::string &get_current_mode() const;
+
   const stream_mode_t &get_mode(std::string mode_name) const;
 
   void add_mode(std::string mode_name, const std::string &open_indicator,

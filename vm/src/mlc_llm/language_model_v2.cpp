@@ -465,6 +465,10 @@ std::optional<std::string> tvm_language_model_t::detokenize(int32_t token) {
   }
 }
 
+const std::string &tvm_language_model_t::get_current_mode() const {
+  return current_stream_mode_;
+}
+
 const tvm_language_model_t::stream_mode_t &
 tvm_language_model_t::get_mode(std::string mode_name) const {
   return stream_modes_.at(mode_name);
@@ -714,6 +718,13 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
           component->get_obj("model")
               ->as<tvm_language_model_t>()
               ->config.temperature = temperature.value();
+        else
+          component->get_obj("model")
+              ->as<tvm_language_model_t>()
+              ->config.temperature = component->get_obj("model")
+                                         ->as<tvm_language_model_t>()
+                                         ->get_default_config()
+                                         .temperature;
 
         // Get top-p (optional)
         std::optional<double> top_p;
@@ -724,6 +735,13 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
           component->get_obj("model")
               ->as<tvm_language_model_t>()
               ->config.top_p = top_p.value();
+        else
+          component->get_obj("model")
+              ->as<tvm_language_model_t>()
+              ->config.top_p = component->get_obj("model")
+                                   ->as<tvm_language_model_t>()
+                                   ->get_default_config()
+                                   .top_p;
 
         // Apply chat template on messages
         auto prompt =
@@ -737,13 +755,12 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
                 prompt);
 
         // Prefill
-        auto last_token =
+        auto current_token =
             component->get_obj("model")->as<tvm_language_model_t>()->prefill(
                 tokens);
 
         auto rv = create<map_t>();
-        rv->insert_or_assign("last_token", create<int_t>(last_token));
-        rv->insert_or_assign("tool_call_exists", create<bool_t>(false));
+        rv->insert_or_assign("current_token", create<int_t>(current_token));
         return rv;
       },
       //
@@ -752,60 +769,80 @@ create_tvm_language_model_v2_component(std::shared_ptr<const value_t> inputs) {
       [](std::shared_ptr<component_t> component,
          std::shared_ptr<value_t> state) -> output_t {
         // Get saved values & objects
-        auto last_token = state->as<map_t>()->at<int_t>("last_token");
-        auto tool_call_exists =
-            state->as<map_t>()->at<bool_t>("tool_call_exists");
         auto model = component->get_obj("model")->as<tvm_language_model_t>();
-        const bool ignore_reasoning_messages =
+        auto current_token = state->as<map_t>()->at<int_t>("current_token");
+        bool ignore_reasoning_messages =
             *component->get_obj("ignore_reasoning_messages")
                  ->as<ailoy::bool_t>();
 
-        // check if delta needs to be dismissed
-        auto dismiss_delta =
-            [ignore_reasoning_messages](nlohmann::json delta) -> bool {
-          // case 1) dismiss if ignore option is set and output is reasoning
-          bool dismiss_reasoning =
-              (ignore_reasoning_messages && delta.value("reasoning", false));
-          // case 2) wait during content is empty and no tool calls exist
-          bool wait_valid_tool_call_output =
-              ((delta.value("content", "") == "") &&
-               !delta.contains("tool_calls"));
-          return dismiss_reasoning || wait_valid_tool_call_output;
-        };
-
         // Repeat steps until valid output comes or it finished.
-        std::string last_token_str;
-        std::optional<std::string> finish_reason = std::nullopt;
+        auto resp = create<map_t>();
+        resp->insert_or_assign("role", create<string_t>("assistant"));
+        std::string agg_token_str;
         try {
-          while (last_token_str.empty()) {
-            *last_token = model->decode(*last_token);
-            auto opt = model->detokenize(*last_token);
-            if (opt.has_value())
-              last_token_str = opt.value();
+          while (true) {
+            *current_token = model->decode(*current_token);
+            auto current_mode = model->get_current_mode();
+            auto opt = model->detokenize(*current_token);
+            if (!opt.has_value())
+              continue;
+            std::string current_token_str = opt.value();
+            if (current_mode == "tool_call") {
+              if (model->is_botc(current_token_str))
+                continue;
+              agg_token_str += current_token_str;
+            } else if (current_mode == "reasoning") {
+              if (model->is_bor(current_token_str))
+                continue;
+              if (ignore_reasoning_messages)
+                continue;
+              resp->insert_or_assign("type", create<string_t>("reasoning"));
+              resp->insert_or_assign("content",
+                                     create<string_t>(current_token_str));
+              resp->insert_or_assign("end_of_turn", create<bool_t>(false));
+              return ok_output_t(resp, false);
+            } else {
+              if (model->is_eos(current_token_str)) {
+                resp->insert_or_assign("type", create<string_t>("output_text"));
+                resp->insert_or_assign("content", create<string_t>(""));
+                resp->insert_or_assign("end_of_turn", create<bool_t>(true));
+                return ok_output_t(resp, true);
+              } else if (model->is_eotc(current_token_str)) {
+                if (ignore_reasoning_messages)
+                  continue;
+                auto decoded = decode(agg_token_str, encoding_method_t::json);
+                agg_token_str = "";
+                resp->insert_or_assign("type", create<string_t>("tool_call"));
+                resp->insert_or_assign("content", create<map_t>());
+                resp->insert_or_assign("end_of_turn", create<bool_t>(true));
+                auto content = resp->at<map_t>("content");
+                content->insert_or_assign("type", create<string_t>("function"));
+                content->insert_or_assign("function", decoded);
+                return ok_output_t(resp, false);
+              } else if (model->is_eor(current_token_str)) {
+                resp->insert_or_assign("type", create<string_t>("reasoning"));
+                resp->insert_or_assign("content", create<string_t>(""));
+                resp->insert_or_assign("end_of_turn", create<bool_t>(true));
+                return ok_output_t(resp, false);
+              }
+              resp->insert_or_assign("type", create<string_t>("output_text"));
+              resp->insert_or_assign("content",
+                                     create<string_t>(current_token_str));
+              resp->insert_or_assign("end_of_turn", create<bool_t>(false));
+              return ok_output_t(resp, false);
+            }
           }
-          if (model->is_botc(last_token_str))
-            *tool_call_exists = true;
-          if (model->is_eos(last_token_str))
-            finish_reason = *tool_call_exists ? "tool_call" : "stop";
         } catch (const exception_t<context_length_limit> &e) {
-          finish_reason = "length";
+          resp->insert_or_assign("type", create<string_t>("error"));
+          resp->insert_or_assign("content", create<string_t>(e.what()));
+          resp->insert_or_assign("finish_reason", create<string_t>("length"));
+          return ok_output_t(resp, true);
         }
-
-        auto out = create<map_t>();
-        if (!last_token_str.empty()) {
-          auto message = create<map_t>();
-          auto content = create<string_t>(last_token_str);
-          message->insert_or_assign("role", create<string_t>("assistant"));
-          message->insert_or_assign("content", content);
-          out->insert_or_assign("message", message);
-        }
-        if (finish_reason.has_value())
-          out->insert_or_assign("finish_reason",
-                                create<string_t>(finish_reason.value()));
-        return ok_output_t(out, finish_reason.has_value());
       });
 
-  // Define inference op
+  //
+  // Define apply_chat_template op
+  //
   auto apply_chat_template = ailoy::create<instant_method_operator_t>(
       [](std::shared_ptr<component_t> component,
          std::shared_ptr<const value_t> inputs) -> value_or_error_t {
