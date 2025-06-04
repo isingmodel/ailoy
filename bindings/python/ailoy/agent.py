@@ -22,6 +22,7 @@ from rich.panel import Panel
 
 from ailoy.ailoy_py import generate_uuid
 from ailoy.runtime import Runtime
+from ailoy.tools import DocstringParsingException, TypeHintParsingException, get_json_schema
 
 __all__ = ["Agent"]
 
@@ -146,7 +147,7 @@ _console = Console(highlight=False, force_jupyter=False, force_terminal=True)
 
 class AgentResponseBase(BaseModel):
     type: Literal["output_text", "tool_call", "tool_call_result", "reasoning", "error"]
-    end_of_turn: bool
+    is_type_switched: bool = False
     role: Literal["assistant", "tool"]
     content: Any
 
@@ -160,9 +161,9 @@ class AgentResponseOutputText(AgentResponseBase):
     content: str
 
     def print(self):
+        if self.is_type_switched:
+            _console.print()  # add newline if type has been switched
         _console.print(self.content, end="", style=("yellow" if self.type == "reasoning" else None))
-        if self.end_of_turn:
-            _console.print()
 
 
 class AgentResponseToolCall(AgentResponseBase):
@@ -388,6 +389,9 @@ class Agent:
         if self._component_state.valid:
             return
 
+        if not self._runtime.is_alive():
+            raise ValueError("Runtime is currently stopped.")
+
         if model_name not in model_descriptions:
             raise ValueError(f"Model `{model_name}` not supported")
 
@@ -422,7 +426,10 @@ class Agent:
         """
         if not self._component_state.valid:
             return
-        self._runtime.delete(self._component_state.name)
+
+        if self._runtime.is_alive():
+            self._runtime.delete(self._component_state.name)
+
         if len(self._messages) > 0 and self._messages[0].role == "system":
             self._messages = [self._messages[0]]
         else:
@@ -443,7 +450,16 @@ class Agent:
         :param ignore_reasoning_messages: If True, reasoning steps are not included in the response stream. (default: False)
         :yield: AgentResponse output of the LLM inference or tool calls
         """  # noqa: E501
+        if not self._component_state.valid:
+            raise ValueError("Agent is not valid. Create one or define newly.")
+
+        if not self._runtime.is_alive():
+            raise ValueError("Runtime is currently stopped.")
+
         self._messages.append(UserMessage(role="user", content=message))
+
+        prev_resp_type = None
+        is_tool_called = False
 
         while True:
             infer_args = {
@@ -480,41 +496,25 @@ class Agent:
                 reasoning_message = ""
                 output_text_message = ""
 
-            for resp in self._runtime.call_iter_method(self._component_state.name, "infer", infer_args):
-                delta = MessageDelta.model_validate(resp)
-
-                if delta.finish_reason is None:
-                    output_msg = AIOutputTextMessage.model_validate(delta.message)
-
-                    # accumulate text messages to append in batch
-                    if output_msg.reasoning:
-                        reasoning_message += output_msg.content
-                    else:
-                        output_text_message += output_msg.content
-
-                    yield AgentResponseOutputText(
-                        type="reasoning" if output_msg.reasoning else "output_text",
-                        end_of_turn=False,
-                        role="assistant",
-                        content=output_msg.content,
-                    )
-                    continue
+            for result in self._runtime.call_iter_method(self._component_state.name, "infer", infer_args):
+                delta = MessageDelta.model_validate(result)
 
                 if delta.finish_reason == "tool_calls":
+                    is_tool_called = True
                     _append_assistant_text_message()
 
                     tool_call_message = AIToolCallMessage.model_validate(delta.message)
                     self._messages.append(tool_call_message)
 
                     for tool_call in tool_call_message.tool_calls:
-                        yield AgentResponseToolCall(
+                        resp = AgentResponseToolCall(
                             type="tool_call",
-                            end_of_turn=True,
                             role="assistant",
+                            is_type_switched=(prev_resp_type != "tool_call"),
                             content=tool_call,
                         )
-
-                    tool_call_results: list[ToolCallResultMessage] = []
+                        prev_resp_type = resp.type
+                        yield resp
 
                     def run_tool(tool_call: ToolCall):
                         tool_ = next(
@@ -535,32 +535,44 @@ class Agent:
 
                     for result_msg in tool_call_results:
                         self._messages.append(result_msg)
-                        yield AgentResponseToolCallResult(
+                        resp = AgentResponseToolCallResult(
                             type="tool_call_result",
-                            end_of_turn=True,
                             role="tool",
+                            is_type_switched=(prev_resp_type != "tool_call_result"),
                             content=result_msg,
                         )
+                        prev_resp_type = resp.type
+                        yield resp
 
-                    # Run infer again with new messages
-                    break
+                    continue
 
-                if delta.finish_reason in ["stop", "length", "error"]:
-                    output_msg = AIOutputTextMessage.model_validate(delta.message)
-
+                output_msg = AIOutputTextMessage.model_validate(delta.message)
+                if output_msg.reasoning:
+                    reasoning_message += output_msg.content
+                else:
                     output_text_message += output_msg.content
 
+                resp = AgentResponseOutputText(
+                    type="reasoning" if output_msg.reasoning else "output_text",
+                    role="assistant",
+                    content=output_msg.content,
+                )
+                resp.is_type_switched = prev_resp_type != resp.type
+                prev_resp_type = resp.type
+                yield resp
+
+                if delta.finish_reason in ["stop", "length", "error"]:
                     _append_assistant_text_message()
+                    # Finish this infer
+                    break
 
-                    yield AgentResponseOutputText(
-                        type="reasoning" if output_msg.reasoning else "output_text",
-                        end_of_turn=True,
-                        role="assistant",
-                        content=output_msg.content,
-                    )
+            # Infer again if tool calls happened
+            if is_tool_called:
+                is_tool_called = False
+                continue
 
-                    # finish this Generator
-                    return
+            # Finish this generator
+            return
 
     def print(self, resp: AgentResponse):
         resp.print()
@@ -576,14 +588,29 @@ class Agent:
             return
         self._tools.append(tool)
 
-    def add_py_function_tool(self, desc: dict, f: Callable[..., Any]):
+    def add_py_function_tool(self, f: Callable[..., Any], desc: Optional[dict] = None):
         """
         Adds a Python function as a tool using callable.
 
-        :param desc: Tool descriotion.
         :param f: Function will be called when the tool invocation occured.
+        :param desc: Tool description.
+
+        :raises ValueError: Docstring parsing is failed.
+        :raises ValidationError: Given or parsed description is not a valid `ToolDescription`.
         """
-        self.add_tool(Tool(desc=ToolDescription.model_validate(desc), call_fn=f))
+        tool_description = None
+        if desc is not None:
+            tool_description = ToolDescription.model_validate(desc)
+
+        if tool_description is None:
+            try:
+                json_schema = get_json_schema(f)
+            except (TypeHintParsingException, DocstringParsingException) as e:
+                raise ValueError("Failed to parse docstring", e)
+
+            tool_description = ToolDescription.model_validate(json_schema.get("function", {}))
+
+        self.add_tool(Tool(desc=tool_description, call_fn=f))
 
     def add_builtin_tool(self, tool_def: BuiltinToolDefinition) -> bool:
         """

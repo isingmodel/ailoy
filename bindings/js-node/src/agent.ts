@@ -108,13 +108,13 @@ const modelDescriptions: Record<ModelName, ModelDescription> = {
 export interface AgentResponseText {
   type: "output_text" | "reasoning";
   role: "assistant";
-  endOfTurn: boolean;
+  isTypeSwitched: boolean;
   content: string;
 }
 export interface AgentResponseToolCall {
   type: "tool_call";
   role: "assistant";
-  endOfTurn: boolean;
+  isTypeSwitched: boolean;
   content: {
     id: string;
     function: { name: string; arguments: any };
@@ -123,7 +123,7 @@ export interface AgentResponseToolCall {
 export interface AgentResponseToolResult {
   type: "tool_call_result";
   role: "tool";
-  endOfTurn: boolean;
+  isTypeSwitched: boolean;
   content: {
     name: string;
     tool_call_id: string;
@@ -133,7 +133,7 @@ export interface AgentResponseToolResult {
 export interface AgentResponseError {
   type: "error";
   role: "assistant";
-  endOfTurn: true;
+  isTypeSwitched: boolean;
   content: string;
 }
 export type AgentResponse =
@@ -279,6 +279,8 @@ export class Agent {
     // Skip if the component already exists
     if (this.componentState.valid) return;
 
+    if (!this.runtime.is_alive()) throw Error(`Runtime is currently stopped.`);
+
     const modelDesc = modelDescriptions[modelName];
 
     // Add model name into attrs
@@ -311,8 +313,10 @@ export class Agent {
     // Skip if the component not exists
     if (!this.componentState.valid) return;
 
-    const result = await this.runtime.delete(this.componentState.name);
-    if (!result) throw Error(`component delete failed`);
+    if (!this.runtime.is_alive()) {
+      const result = await this.runtime.delete(this.componentState.name);
+      if (!result) throw Error(`component delete failed`);
+    }
 
     // Clear messages
     if (this.messages.length > 0 && this.messages[0].role === "system")
@@ -335,10 +339,10 @@ export class Agent {
 
   /** Adds a Javascript function as a tool using callable */
   addJSFunctionTool(
-    /** Tool descriotion */
-    desc: ToolDescription,
     /** Function will be called when the tool invocation occured */
-    f: (input: any) => any
+    f: (input: any) => any,
+    /** Tool descriotion */
+    desc: ToolDescription
   ): boolean {
     return this.addTool({ desc, call: f });
   }
@@ -514,6 +518,7 @@ export class Agent {
           }
         }
       });
+      await client.close();
 
       return parsedContent;
     };
@@ -548,6 +553,7 @@ export class Agent {
         continue;
       await this.addMcpTool(params, tool);
     }
+    await client.close();
   }
 
   getAvailableTools(): Array<ToolDescription> {
@@ -564,7 +570,15 @@ export class Agent {
       ignoreReasoningMessages?: boolean;
     }
   ): AsyncGenerator<AgentResponse> {
+    if (!this.componentState.valid)
+      throw Error(`Agent is not valid. Create one or define newly.`);
+
+    if (!this.runtime.is_alive()) throw Error(`Runtime is currently stopped.`);
+
     this.messages.push({ role: "user", content: message });
+
+    let prevRespType: string | null = null;
+    let isToolCalled = false;
 
     while (true) {
       let reasoningMessage = "";
@@ -596,7 +610,7 @@ export class Agent {
         outputTextMessage = "";
       };
 
-      for await (const resp of this.runtime.callIterMethod(
+      for await (const result of this.runtime.callIterMethod(
         this.componentState.name,
         "infer",
         {
@@ -608,27 +622,11 @@ export class Agent {
           ignore_reasoning_messages: options?.ignoreReasoningMessages,
         }
       )) {
-        const delta: MessageDelta = resp;
-
-        // This means AI is still streaming tokens
-        if (delta.finish_reason === null) {
-          let message = delta.message as AIOutputTextMessage;
-
-          // accumulate text messages to append in batch
-          if (message.reasoning) reasoningMessage += message.content;
-          else outputTextMessage += message.content;
-
-          yield {
-            type: message.reasoning ? "reasoning" : "output_text",
-            endOfTurn: false,
-            role: "assistant",
-            content: message.content,
-          };
-          continue;
-        }
+        const delta: MessageDelta = result;
 
         // This means AI requested tool calls
         if (delta.finish_reason === "tool_calls") {
+          isToolCalled = true;
           _pushAssistantTextMessage();
 
           const toolCallMessage = delta.message as AIToolCallMessage;
@@ -637,12 +635,14 @@ export class Agent {
 
           // Yield for each tool call
           for (const toolCall of toolCallMessage.tool_calls) {
-            yield {
+            const resp: AgentResponseToolCall = {
               type: "tool_call",
-              endOfTurn: true,
               role: "assistant",
+              isTypeSwitched: prevRespType !== "tool_call",
               content: toolCall,
             };
+            prevRespType = resp.type;
+            yield resp;
           }
 
           // Call tools in parallel
@@ -673,16 +673,34 @@ export class Agent {
           // Yield for each tool call result
           for (const toolCallResult of toolCallResults) {
             this.messages.push(toolCallResult);
-            yield {
+            const resp: AgentResponseToolResult = {
               type: "tool_call_result",
-              endOfTurn: true,
               role: "tool",
+              isTypeSwitched: prevRespType !== "tool_call_result",
               content: toolCallResult,
             };
+            prevRespType = resp.type;
+            yield resp;
           }
-          // Infer again with a new request
-          break;
+
+          continue;
         }
+
+        let message = delta.message as AIOutputTextMessage;
+
+        // Accumulate text messages to append in batch
+        if (message.reasoning) reasoningMessage += message.content;
+        else outputTextMessage += message.content;
+
+        const resp: AgentResponseText = {
+          type: message.reasoning ? "reasoning" : "output_text",
+          role: "assistant",
+          isTypeSwitched: false,
+          content: message.content,
+        };
+        resp.isTypeSwitched = prevRespType !== resp.type;
+        prevRespType = resp.type;
+        yield resp;
 
         // This means AI finished its answer
         if (
@@ -690,32 +708,30 @@ export class Agent {
           delta.finish_reason === "length" ||
           delta.finish_reason === "error"
         ) {
-          const message = delta.message as AIOutputTextMessage;
-
-          outputTextMessage += message.content;
-
           _pushAssistantTextMessage();
-
-          yield {
-            type: "output_text",
-            endOfTurn: true,
-            role: "assistant",
-            content: message.content,
-          };
-          // Finish this AsyncGenerator
-          return;
+          // Finish this infer
+          break;
         }
       }
+
+      // Infer again if tool calls happened
+      if (isToolCalled) {
+        isToolCalled = false;
+        continue;
+      }
+
+      // Finish this generator
+      return;
     }
   }
 
   private _printResponseText(resp: AgentResponseText) {
+    if (resp.isTypeSwitched) {
+      process.stdout.write("\n");
+    }
     const content =
       resp.type === "reasoning" ? chalk.yellow(resp.content) : resp.content;
     process.stdout.write(content);
-    if (resp.endOfTurn) {
-      process.stdout.write("\n");
-    }
   }
 
   private _printResponseToolCall(resp: AgentResponseToolCall) {
